@@ -1,0 +1,140 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "KeyPairManagement",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateKeyPair",
+        "ec2:DescribeKeyPairs"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": [
+            "us-east-1",
+            "us-east-2", 
+            "us-west-1",
+            "us-west-2",
+            "eu-west-1",
+            "eu-west-2",
+            "eu-central-1",
+            "ap-southeast-1",
+            "ap-southeast-2",
+            "ap-northeast-1"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "KeyPairDeleteRestricted",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeleteKeyPair"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "ec2:KeyPairName": "spottycat-*"
+        }
+      }
+    },
+    {
+      "Sid": "SecurityGroupManagement",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateSecurityGroup",
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:AuthorizeSecurityGroupEgress",
+        "ec2:DescribeSecurityGroups"
+      ],
+      "Resource": [
+        "arn:aws:ec2:*:*:security-group/*",
+        "arn:aws:ec2:*:*:vpc/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": [
+            "us-east-1",
+            "us-east-2",
+            "us-west-1", 
+            "us-west-2",
+            "eu-west-1",
+            "eu-west-2",
+            "eu-central-1",
+            "ap-southeast-1",
+            "ap-southeast-2",
+            "ap-northeast-1"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "SecurityGroupIngressRestrictions",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:AuthorizeSecurityGroupIngress"
+      ],
+      "Resource": [
+        "arn:aws:ec2:*:*:security-group/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "ec2:AuthorizeSecurityGroupIngress/IpProtocol": "tcp"
+        },
+        "NumericEquals": {
+          "ec2:AuthorizeSecurityGroupIngress/FromPort": "22",
+          "ec2:AuthorizeSecurityGroupIngress/ToPort": "22"
+        },
+        "StringLike": {
+          "ec2:GroupName": "spottycat-*"
+        }
+      }
+    },
+    {
+      "Sid": "SecurityGroupDeleteRestricted",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeleteSecurityGroup",
+        "ec2:RevokeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupEgress"
+      ],
+      "Resource": [
+        "arn:aws:ec2:*:*:security-group/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "ec2:ResourceTag/CreatedBy": "spottycat"
+        }
+      }
+    },
+    {
+      "Sid": "SecurityGroupTagging",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": [
+        "arn:aws:ec2:*:*:security-group/*",
+        "arn:aws:ec2:*:*:key-pair/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "ec2:CreateAction": [
+            "CreateSecurityGroup",
+            "CreateKeyPair"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "VPCDescribeForSecurityGroups",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeVpcs",
+        "ec2:DescribeSubnets"
+      ],
+      "Resource": "*"
+    }
+  ]
+} 

@@ -1,0 +1,324 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "EC2InstanceBasicOperations",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeInstances",
+        "ec2:DescribeInstanceTypes",
+        "ec2:DescribeInstanceStatus",
+        "ec2:DescribeRegions",
+        "ec2:DescribeAvailabilityZones",
+        "ec2:DescribeImages",
+        "ec2:DescribeSnapshots"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "SpotInstanceDescribeOperations",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeSpotInstanceRequests",
+        "ec2:DescribeSpotPriceHistory"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "EC2InstanceManagement",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:StartInstances",
+        "ec2:StopInstances",
+        "ec2:TerminateInstances",
+        "ec2:RebootInstances",
+        "ec2:ModifyInstanceAttribute",
+        "ec2:MonitorInstances",
+        "ec2:UnmonitorInstances"
+      ],
+      "Resource": [
+        "arn:aws:ec2:*:*:instance/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "ec2:ResourceTag/CreatedBy": "spottycat"
+        }
+      }
+    },
+    {
+      "Sid": "SpotInstanceManagement",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:RequestSpotInstances",
+        "ec2:CancelSpotInstanceRequests"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:InstanceType": [
+            "p2.xlarge",
+            "p2.8xlarge",
+            "p2.16xlarge",
+            "p3.2xlarge",
+            "p3.8xlarge",
+            "p3.16xlarge",
+            "p3dn.24xlarge",
+            "p4d.24xlarge",
+            "g3.4xlarge",
+            "g3.8xlarge",
+            "g3.16xlarge",
+            "g4dn.xlarge",
+            "g4dn.2xlarge",
+            "g4dn.4xlarge",
+            "g4dn.8xlarge",
+            "g4dn.12xlarge",
+            "g4dn.16xlarge",
+            "g5.xlarge",
+            "g5.2xlarge",
+            "g5.4xlarge",
+            "g5.8xlarge",
+            "g5.12xlarge",
+            "g5.16xlarge",
+            "g5.24xlarge",
+            "g5.48xlarge"
+          ],
+          "aws:RequestedRegion": [
+            "us-east-1",
+            "us-east-2",
+            "us-west-1",
+            "us-west-2",
+            "eu-west-1",
+            "eu-west-2",
+            "eu-central-1",
+            "ap-southeast-1",
+            "ap-southeast-2",
+            "ap-northeast-1"
+          ]
+        },
+        "NumericLessThan": {
+          "ec2:SpotMaxPrice": "10.0"
+        }
+      }
+    },
+    {
+      "Sid": "LaunchTemplateManagement",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateLaunchTemplate",
+        "ec2:CreateLaunchTemplateVersion",
+        "ec2:ModifyLaunchTemplate",
+        "ec2:DescribeLaunchTemplates",
+        "ec2:DescribeLaunchTemplateVersions"
+      ],
+      "Resource": [
+        "arn:aws:ec2:*:*:launch-template/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": [
+            "us-east-1",
+            "us-east-2",
+            "us-west-1",
+            "us-west-2",
+            "eu-west-1",
+            "eu-west-2",
+            "eu-central-1",
+            "ap-southeast-1",
+            "ap-southeast-2",
+            "ap-northeast-1"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "LaunchTemplateDeleteRestricted",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeleteLaunchTemplate",
+        "ec2:DeleteLaunchTemplateVersions"
+      ],
+      "Resource": [
+        "arn:aws:ec2:*:*:launch-template/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "ec2:ResourceTag/CreatedBy": "spottycat"
+        }
+      }
+    },
+    {
+      "Sid": "KeyPairManagement",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateKeyPair",
+        "ec2:DescribeKeyPairs"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": [
+            "us-east-1",
+            "us-east-2",
+            "us-west-1",
+            "us-west-2",
+            "eu-west-1",
+            "eu-west-2",
+            "eu-central-1",
+            "ap-southeast-1",
+            "ap-southeast-2",
+            "ap-northeast-1"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "KeyPairDeleteRestricted",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeleteKeyPair"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "ec2:KeyPairName": "spottycat-*"
+        }
+      }
+    },
+    {
+      "Sid": "SecurityGroupManagement",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateSecurityGroup",
+        "ec2:DescribeSecurityGroups",
+        "ec2:AuthorizeSecurityGroupEgress"
+      ],
+      "Resource": [
+        "arn:aws:ec2:*:*:security-group/*",
+        "arn:aws:ec2:*:*:vpc/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": [
+            "us-east-1",
+            "us-east-2",
+            "us-west-1",
+            "us-west-2",
+            "eu-west-1",
+            "eu-west-2",
+            "eu-central-1",
+            "ap-southeast-1",
+            "ap-southeast-2",
+            "ap-northeast-1"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "SecurityGroupIngressRestricted",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:AuthorizeSecurityGroupIngress"
+      ],
+      "Resource": [
+        "arn:aws:ec2:*:*:security-group/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "ec2:AuthorizeSecurityGroupIngress/IpProtocol": "tcp"
+        },
+        "NumericEquals": {
+          "ec2:AuthorizeSecurityGroupIngress/FromPort": "22",
+          "ec2:AuthorizeSecurityGroupIngress/ToPort": "22"
+        },
+        "StringLike": {
+          "ec2:GroupName": "spottycat-*"
+        }
+      }
+    },
+    {
+      "Sid": "SecurityGroupDeleteRestricted",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeleteSecurityGroup",
+        "ec2:RevokeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupEgress"
+      ],
+      "Resource": [
+        "arn:aws:ec2:*:*:security-group/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "ec2:ResourceTag/CreatedBy": "spottycat"
+        }
+      }
+    },
+    {
+      "Sid": "VPCAndNetworkingDescribe",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeVpcs",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeInternetGateways",
+        "ec2:DescribeRouteTables",
+        "ec2:DescribeNetworkAcls"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ServiceQuotasAccess",
+      "Effect": "Allow",
+      "Action": [
+        "servicequotas:GetServiceQuota",
+        "servicequotas:ListServiceQuotas",
+        "servicequotas:GetAWSDefaultServiceQuota",
+        "servicequotas:ListAWSDefaultServiceQuotas"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "PricingAPIAccess",
+      "Effect": "Allow",
+      "Action": [
+        "pricing:GetProducts",
+        "pricing:GetAttributeValues",
+        "pricing:DescribeServices"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "CloudWatchMetricsRead",
+      "Effect": "Allow",
+      "Action": [
+        "cloudwatch:GetMetricStatistics",
+        "cloudwatch:ListMetrics",
+        "cloudwatch:GetMetricData"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ResourceTagging",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": [
+        "arn:aws:ec2:*:*:spot-instances-request/*",
+        "arn:aws:ec2:*:*:instance/*",
+        "arn:aws:ec2:*:*:launch-template/*",
+        "arn:aws:ec2:*:*:security-group/*",
+        "arn:aws:ec2:*:*:key-pair/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "ec2:CreateAction": [
+            "RequestSpotInstances",
+            "RunInstances",
+            "CreateLaunchTemplate",
+            "CreateSecurityGroup",
+            "CreateKeyPair"
+          ]
+        }
+      }
+    }
+  ]
+} 

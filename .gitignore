@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+venv/
+.venv/
+dev/
+test/
+
+# Egg info
+*.egg-info/
+dist/
+build/
+
+# Pytest cache
+.pytest_cache/
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+
+# Cursor AI
+.cursor/
+.mdc
+
+# AWS/SSH keys (precaution)
+*.pem
+*.key
+
+# Configs (if you ever add real secrets)
+.env
+.env.*
+
+# MacOS/Linux
+.DS_Store
+*.log
+
+# Jupyter/IPython
+.ipynb_checkpoints/
+
+# Misc
+CACHEDIR.TAG 

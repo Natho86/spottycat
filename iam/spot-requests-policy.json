@@ -1,0 +1,87 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "SpotInstanceDescribeOperations",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeSpotInstanceRequests",
+        "ec2:DescribeSpotPriceHistory"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "SpotInstanceRequestsManagement",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:RequestSpotInstances",
+        "ec2:CancelSpotInstanceRequests"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:InstanceType": [
+            "p2.xlarge",
+            "p2.8xlarge",
+            "p2.16xlarge",
+            "p3.2xlarge",
+            "p3.8xlarge",
+            "p3.16xlarge",
+            "p3dn.24xlarge",
+            "p4d.24xlarge",
+            "g3.4xlarge",
+            "g3.8xlarge",
+            "g3.16xlarge",
+            "g4dn.xlarge",
+            "g4dn.2xlarge",
+            "g4dn.4xlarge",
+            "g4dn.8xlarge",
+            "g4dn.12xlarge",
+            "g4dn.16xlarge",
+            "g5.xlarge",
+            "g5.2xlarge",
+            "g5.4xlarge",
+            "g5.8xlarge",
+            "g5.12xlarge",
+            "g5.16xlarge",
+            "g5.24xlarge",
+            "g5.48xlarge"
+          ]
+        },
+        "NumericLessThan": {
+          "ec2:SpotMaxPrice": "10.0"
+        }
+      }
+    },
+    {
+      "Sid": "SpotInstanceRequiredDescribeActions",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeInstances",
+        "ec2:DescribeInstanceTypes",
+        "ec2:DescribeAvailabilityZones",
+        "ec2:DescribeRegions"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "SpotInstanceTagging",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": [
+        "arn:aws:ec2:*:*:spot-instances-request/*",
+        "arn:aws:ec2:*:*:instance/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "ec2:CreateAction": [
+            "RequestSpotInstances",
+            "RunInstances"
+          ]
+        }
+      }
+    }
+  ]
+} 

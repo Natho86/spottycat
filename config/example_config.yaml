@@ -1,0 +1,76 @@
+# spottycat - Example Configuration
+# Customized configuration for a specific use case
+
+# AWS Configuration
+aws:
+  region: "us-west-2"  # Use US West 2 for better GPU availability
+  profile: "my-aws-profile"
+  fallback_regions:
+    - "us-east-1"
+    - "eu-west-1"
+
+# Budget Management
+budget:
+  max_total_budget: 200.0  # Higher budget for production workloads
+  max_per_instance_budget: 100.0
+  tracking_period: "weekly"
+  alerts:
+    warning_threshold: 80
+    critical_threshold: 95
+  auto_terminate_on_budget_limit: true
+  budget_buffer_percentage: 5
+
+# Instance Configuration
+instances:
+  preferred_types:
+    - "g5.2xlarge"       # Prefer newer A10G instances
+    - "g4dn.2xlarge"     # Fallback to T4 instances
+    - "p3.2xlarge"       # High-performance V100 for intensive tasks
+  
+  default_instance_type: "g5.2xlarge"
+  max_concurrent_instances: 2  # Limit concurrent instances
+
+# Spot Instance Configuration
+spot:
+  max_spot_price: "0.50"  # Set maximum spot price
+  interruption_behavior: "terminate"
+  persistent: false
+
+# Security Configuration
+security:
+  key_pair:
+    name: "my-gpu-keypair"
+    private_key_path: "~/.ssh/gpu-key.pem"
+  
+  security_group:
+    name: "my-gpu-sg"
+    ingress_rules:
+      - protocol: "tcp"
+        port: 22
+        source: "203.0.113.0/24"  # Restrict SSH to specific IP range
+        description: "SSH access from office network"
+
+# Software Installation
+software:
+  nvidia:
+    driver_version: "525"  # Specific driver version
+    install_cuda: true
+    cuda_version: "12.0"
+  
+  hashcat:
+    install: true
+    version: "6.2.6"
+    install_utils: true
+  
+  additional_packages:
+    - "htop"
+    - "nvtop"
+    - "git"
+    - "python3-pip"
+    - "build-essential"
+
+# CLI Configuration
+cli:
+  output_format: "json"  # Prefer JSON output for scripting
+  colored_output: false  # Disable colors for log parsing
+  log_level: "DEBUG"     # Verbose logging for troubleshooting 

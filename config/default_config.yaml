@@ -1,0 +1,252 @@
+# spottycat - Default Configuration Template
+# AWS GPU Spot Instance Manager Configuration
+# Copy this file and customize for your environment
+
+# AWS Configuration
+aws:
+  # Default AWS region for spot instances
+  region: "us-east-1"
+  
+  # AWS profile to use (leave empty to use default)
+  profile: ""
+  
+  # Alternative regions for failover (in order of preference)
+  fallback_regions:
+    - "us-west-2"
+    - "eu-west-1"
+    - "ap-southeast-1"
+
+# Budget Management
+budget:
+  # Maximum total budget for all spot instances (USD)
+  max_total_budget: 100.0
+  
+  # Maximum budget per instance (USD)
+  max_per_instance_budget: 50.0
+  
+  # Budget tracking period (daily, weekly, monthly)
+  tracking_period: "daily"
+  
+  # Alert thresholds (percentage of budget)
+  alerts:
+    warning_threshold: 75  # Alert at 75% of budget
+    critical_threshold: 90  # Alert at 90% of budget
+  
+  # Auto-terminate instances when approaching budget limit
+  auto_terminate_on_budget_limit: true
+  
+  # Budget buffer percentage (terminate before hitting exact limit)
+  budget_buffer_percentage: 5
+
+# Instance Configuration
+instances:
+  # Preferred GPU instance types (in order of preference)
+  preferred_types:
+    - "g4dn.xlarge"      # NVIDIA T4, 4 vCPUs, 16 GB RAM
+    - "g4dn.2xlarge"     # NVIDIA T4, 8 vCPUs, 32 GB RAM
+    - "g5.xlarge"        # NVIDIA A10G, 4 vCPUs, 16 GB RAM
+    - "g5.2xlarge"       # NVIDIA A10G, 8 vCPUs, 32 GB RAM
+    - "p3.2xlarge"       # NVIDIA V100, 8 vCPUs, 61 GB RAM
+  
+  # Default instance configuration
+  default_instance_type: "g4dn.xlarge"
+  
+  # Maximum number of concurrent spot instances
+  max_concurrent_instances: 3
+  
+  # Default AMI preferences
+  ami:
+    # AMI type preference (ubuntu, amazon-linux, custom)
+    type: "ubuntu"
+    # Ubuntu version (20.04, 22.04, latest)
+    ubuntu_version: "22.04"
+    # Architecture (x86_64, arm64)
+    architecture: "x86_64"
+    # Custom AMI ID (overrides type and version if specified)
+    custom_ami_id: ""
+
+# Spot Instance Configuration
+spot:
+  # Maximum spot price (USD per hour) - empty means on-demand price
+  max_spot_price: ""
+  
+  # Spot instance interruption behavior (terminate, stop, hibernate)
+  interruption_behavior: "terminate"
+  
+  # Spot fleet request type (request, maintain)
+  request_type: "request"
+  
+  # Persistent spot requests (keep trying after interruption)
+  persistent: false
+
+# Launch Template Configuration
+launch_template:
+  # Default launch template name prefix
+  name_prefix: "spottycat"
+  
+  # Instance monitoring (basic, detailed)
+  monitoring: "basic"
+  
+  # EBS optimization
+  ebs_optimized: true
+  
+  # Root volume configuration
+  root_volume:
+    size: 30  # GB
+    type: "gp3"  # gp2, gp3, io1, io2
+    encrypted: true
+    delete_on_termination: true
+  
+  # Additional EBS volumes
+  additional_volumes: []
+  
+  # User data script components to include
+  user_data_components:
+    - "nvidia_drivers"
+    - "cuda_toolkit"
+    - "hashcat"
+    - "docker"
+    - "awscli"
+
+# Security Configuration
+security:
+  # Key pair configuration
+  key_pair:
+    # Key pair name (will be created if doesn't exist)
+    name: "spottycat-keypair"
+    # Local path to store private key
+    private_key_path: "~/.ssh/spottycat-key.pem"
+  
+  # Security group configuration
+  security_group:
+    name: "spottycat-sg"
+    description: "Security group for spottycat GPU instances"
+    
+    # Inbound rules
+    ingress_rules:
+      - protocol: "tcp"
+        port: 22
+        source: "0.0.0.0/0"  # SSH access (consider restricting to your IP)
+        description: "SSH access for instance management"
+      
+      - protocol: "tcp"
+        port: 8080
+        source: "0.0.0.0/0"  # Web interface access
+        description: "Web interface access"
+    
+    # Outbound rules (empty means allow all outbound)
+    egress_rules: []
+
+# Software Installation
+software:
+  # NVIDIA driver configuration
+  nvidia:
+    # Driver version (latest, 470, 510, etc.)
+    driver_version: "latest"
+    # Install CUDA toolkit
+    install_cuda: true
+    # CUDA version (latest, 11.8, 12.0, etc.)
+    cuda_version: "latest"
+  
+  # Hashcat configuration
+  hashcat:
+    # Install hashcat
+    install: true
+    # Hashcat version (latest, 6.2.5, etc.)
+    version: "latest"
+    # Install additional utilities
+    install_utils: true
+  
+  # Docker configuration
+  docker:
+    # Install Docker
+    install: true
+    # Add user to docker group
+    add_user_to_group: true
+  
+  # Additional packages to install
+  additional_packages:
+    - "htop"
+    - "nvtop"
+    - "git"
+    - "wget"
+    - "curl"
+    - "unzip"
+
+# Monitoring and Logging
+monitoring:
+  # Enable CloudWatch monitoring
+  cloudwatch_enabled: true
+  
+  # CloudWatch log group
+  log_group: "/aws/ec2/spottycat"
+  
+  # Metrics to collect
+  metrics:
+    - "cpu_utilization"
+    - "gpu_utilization"
+    - "memory_utilization"
+    - "network_in"
+    - "network_out"
+  
+  # Monitoring interval (seconds)
+  interval: 300
+
+# Notification Configuration
+notifications:
+  # SNS topic for notifications (optional)
+  sns_topic_arn: ""
+  
+  # Email notifications
+  email:
+    enabled: false
+    recipients: []
+  
+  # Slack notifications
+  slack:
+    enabled: false
+    webhook_url: ""
+    channel: "#spottycat"
+
+# CLI Configuration
+cli:
+  # Default output format (table, json, yaml)
+  output_format: "table"
+  
+  # Enable colored output
+  colored_output: true
+  
+  # Default log level (DEBUG, INFO, WARNING, ERROR)
+  log_level: "INFO"
+  
+  # Configuration file paths to check (in order)
+  config_paths:
+    - "~/.spottycat/config.yaml"
+    - "~/.config/spottycat/config.yaml"
+    - "./config/config.yaml"
+    - "./spottycat.yaml"
+
+# Advanced Configuration
+advanced:
+  # Retry configuration for AWS API calls
+  retry:
+    max_attempts: 3
+    backoff_multiplier: 2
+    max_backoff: 60
+  
+  # Timeout configuration (seconds)
+  timeouts:
+    api_timeout: 30
+    instance_start_timeout: 300
+    instance_stop_timeout: 180
+  
+  # Cache configuration
+  cache:
+    enabled: true
+    ttl: 300  # seconds
+    max_size: 1000  # entries
+  
+  # Concurrent operations
+  concurrency:
+    max_parallel_requests: 5
+    max_parallel_instance_operations: 3 

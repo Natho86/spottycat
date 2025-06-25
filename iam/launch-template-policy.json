@@ -1,0 +1,79 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "LaunchTemplateManagement",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateLaunchTemplate",
+        "ec2:CreateLaunchTemplateVersion",
+        "ec2:ModifyLaunchTemplate",
+        "ec2:DescribeLaunchTemplates",
+        "ec2:DescribeLaunchTemplateVersions"
+      ],
+      "Resource": [
+        "arn:aws:ec2:*:*:launch-template/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": [
+            "us-east-1",
+            "us-east-2",
+            "us-west-1",
+            "us-west-2",
+            "eu-west-1",
+            "eu-west-2",
+            "eu-central-1",
+            "ap-southeast-1",
+            "ap-southeast-2",
+            "ap-northeast-1"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "LaunchTemplateTagging",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": [
+        "arn:aws:ec2:*:*:launch-template/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "ec2:CreateAction": "CreateLaunchTemplate"
+        }
+      }
+    },
+    {
+      "Sid": "LaunchTemplateRequiredDescribeActions",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeImages",
+        "ec2:DescribeInstanceTypes",
+        "ec2:DescribeKeyPairs",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeVpcs"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "LaunchTemplateDeleteRestricted",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeleteLaunchTemplate",
+        "ec2:DeleteLaunchTemplateVersions"
+      ],
+      "Resource": [
+        "arn:aws:ec2:*:*:launch-template/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "ec2:ResourceTag/CreatedBy": "spottycat"
+        }
+      }
+    }
+  ]
+} 
