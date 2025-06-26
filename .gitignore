@@ -33,6 +33,7 @@ build/
 # Configs (if you ever add real secrets)
 .env
 .env.*
+config.yaml
 
 # MacOS/Linux
 .DS_Store
