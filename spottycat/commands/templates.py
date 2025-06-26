@@ -77,7 +77,8 @@ def create(ctx, instance_type, ami_id, user_data_file, validate, as_json):
     from spottycat.utils.launch_template_builder import LaunchTemplateBuilder
     try:
         builder = LaunchTemplateBuilder(aws_client)
-        config = builder.build_template(instance_type, ami_id=ami_id, user_data=user_data_file)
+        config_obj = ctx.obj.get('config')
+        config = builder.build_template(instance_type, ami_id=ami_id, user_data=user_data_file, config=config_obj)
         if validate:
             is_valid, errors = builder.validate_template(config)
             if is_valid:

@@ -92,7 +92,7 @@ launch_template:
   
   # Root volume configuration
   root_volume:
-    size: 30  # GB
+    size: 100  # GB
     type: "gp3"  # gp2, gp3, io1, io2
     encrypted: true
     delete_on_termination: true

@@ -88,18 +88,31 @@ class LaunchTemplateBuilder:
             ]
             user_data_content = gen.combine_scripts(scripts)
             user_data_b64 = base64.b64encode(user_data_content.encode('utf-8')).decode('utf-8')
+        # Determine root volume size from config or default
+        config = kwargs.get('config')
+        root_volume_size = 100  # default
+        root_volume_type = 'gp3'
+        root_volume_encrypted = True
+        root_volume_delete_on_termination = True
+        if config:
+            launch_template_cfg = config.config_data.get('launch_template', {})
+            root_vol_cfg = launch_template_cfg.get('root_volume', {})
+            root_volume_size = root_vol_cfg.get('size', root_volume_size)
+            root_volume_type = root_vol_cfg.get('type', root_volume_type)
+            root_volume_encrypted = root_vol_cfg.get('encrypted', root_volume_encrypted)
+            root_volume_delete_on_termination = root_vol_cfg.get('delete_on_termination', root_volume_delete_on_termination)
         # Build the launch template config dict
         template = {
             'ImageId': selected_ami,
             'InstanceType': instance_type,
-            # Add a 100GB EBS root volume for wordlist storage
             'BlockDeviceMappings': [
                 {
                     'DeviceName': '/dev/xvda',
                     'Ebs': {
-                        'VolumeSize': 100,
-                        'VolumeType': 'gp3',
-                        'DeleteOnTermination': True
+                        'VolumeSize': root_volume_size,
+                        'VolumeType': root_volume_type,
+                        'Encrypted': root_volume_encrypted,
+                        'DeleteOnTermination': root_volume_delete_on_termination
                     }
                 }
             ],
