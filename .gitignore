@@ -17,6 +17,12 @@ build/
 # Pytest cache
 .pytest_cache/
 
+# Test and coverage output
+.coverage
+coverage.xml
+htmlcov/
+*.log
+
 # Editor/IDE
 .vscode/
 .idea/
@@ -24,7 +30,7 @@ build/
 
 # Cursor AI
 .cursor/
-.mdc
+*.mdc
 tasks/
 
 # AWS/SSH keys (precaution)
