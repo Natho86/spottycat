@@ -69,7 +69,7 @@ class AWSClient:
         """
         try:
             return self.sts_client.get_caller_identity()
-        except (NoCredentialsError, ClientError) as e:
+        except Exception as e:
             raise RuntimeError(f"Unable to get current AWS user: {e}")
 
     def describe_instances(self, **kwargs):

@@ -109,7 +109,7 @@ class TestAWSClient:
         mock_session.return_value = mock_sess
         client = AWSClient()
         # Valid
-        mock_pricing.get_products.return_value = {'PriceList': ['{"terms":{"OnDemand":{"X":{"priceDimensions":{"Y":{"pricePerUnit":{"USD":"0.42"}}}}}}']}
+        mock_pricing.get_products.return_value = {'PriceList': ['{"terms":{"OnDemand":{"X":{"priceDimensions":{"Y":{"pricePerUnit":{"USD":"0.42"}}}}}}}']}
         assert client.get_spot_price('g4dn.xlarge', region='us-east-1') == 0.42
         # No price found
         mock_pricing.get_products.return_value = {'PriceList': []}

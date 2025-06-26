@@ -85,7 +85,7 @@ def mock_pricing_client():
         # Mock pricing response
         mock_pricing.get_products.return_value = {
             'PriceList': [
-                '{"product":{"productFamily":"Compute Instance"},"terms":{"OnDemand":{"PRICE123":{"priceDimensions":{"PRICE123.JRTCKXETXF":{"unit":"Hrs","pricePerUnit":{"USD":"0.526"}}}}}}}'
+                '{"product": {"productFamily": "Compute Instance"}, "terms": {"OnDemand": {"PRICE123": {"priceDimensions": {"PRICE123.JRTCKXETXF": {"unit": "Hrs", "pricePerUnit": {"USD": "0.526"}}}}}, "Spot": {"PRICE123": {"priceDimensions": {"PRICE123.JRTCKXETXF": {"unit": "Hrs", "pricePerUnit": {"USD": "0.42"}}}}}}}'
             ]
         }
         
