@@ -80,7 +80,7 @@ class Config:
     
     def get(self, key: str, default=None):
         """Get configuration value by key."""
-        return self.config_data.get(key, default)
+        return self.config_data.get(key, default) 
 
     @property
     def aws(self):

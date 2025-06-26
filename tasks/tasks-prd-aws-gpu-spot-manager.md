@@ -96,15 +96,15 @@
   - [x] 5.6 Create cost reporting functionality showing spend history and projections
   - [x] 5.7 Implement per-region cost tracking for multi-region deployments
 
-- [ ] 6.0 Create Launch Template and Instance Configuration System
-  - [ ] 6.1 Create launch template builder with Ubuntu 22.04 AMI selection logic
-  - [ ] 6.2 Generate user data scripts for NVIDIA driver installation (latest stable version)
-  - [ ] 6.3 Generate user data scripts for CUDA toolkit installation
-  - [ ] 6.4 Generate user data scripts for hashcat installation from official sources
-  - [ ] 6.5 Implement security group creation with SSH access (port 22) from user's IP
-  - [ ] 6.6 Create launch template versioning system for different GPU instance types
-  - [ ] 6.7 Add support for custom user data script injection
-  - [ ] 6.8 Implement launch template validation before spot request submission
+- [x] 6.0 Create Launch Template and Instance Configuration System
+  - [x] 6.1 Create launch template builder with Ubuntu 22.04 AMI selection logic
+  - [x] 6.2 Generate user data scripts for NVIDIA driver installation (latest stable version)
+  - [x] 6.3 Generate user data scripts for CUDA toolkit installation
+  - [x] 6.4 Generate user data scripts for hashcat installation from official sources
+  - [x] 6.5 Implement security group creation with SSH access (port 22) from user's IP
+  - [x] 6.6 Create launch template versioning system for different GPU instance types
+  - [x] 6.7 Add support for custom user data script injection
+  - [x] 6.8 Implement launch template validation before spot request submission
 
 - [ ] 7.0 Add Testing, Documentation, and Deployment
   - [ ] 7.1 Create unit tests for AWS client wrapper with mocked boto3 responses

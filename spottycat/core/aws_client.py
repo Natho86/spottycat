@@ -196,6 +196,6 @@ class AWSClient:
             raise RuntimeError(f"Could not parse spot price for {instance_type} in {region}")
         except (NoCredentialsError, ClientError, KeyError, ValueError) as e:
             raise RuntimeError(f"Unable to fetch spot price for {instance_type} in {region}: {e}")
-
+    
     # Placeholder for AWS client implementation
     # Will be implemented in task 3.1 

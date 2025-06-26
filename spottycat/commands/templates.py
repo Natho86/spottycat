@@ -59,10 +59,47 @@ def list(ctx, as_json):
 
 
 @templates.command()
+@click.option('--instance-type', required=True, help='EC2 instance type (e.g., g4dn.xlarge)')
+@click.option('--ami-id', default=None, help='Custom AMI ID (overrides Ubuntu 22.04 selection)')
+@click.option('--user-data-file', default=None, help='Path to custom user data script (optional)')
+@click.option('--validate', is_flag=True, help='Validate the launch template before output')
+@click.option('--json', 'as_json', is_flag=True, help='Output as JSON')
 @click.pass_context
-def create(ctx):
-    """Create a new launch template (stub)."""
-    click.echo("[stub] Create launch template: Not yet implemented.")
+def create(ctx, instance_type, ami_id, user_data_file, validate, as_json):
+    """Create a new launch template with Ubuntu 22.04 AMI selection and optional custom user data."""
+    console = Console()
+    aws_client = ctx.obj.get('aws_client')
+    debug = ctx.obj.get('debug', False)
+    if not aws_client:
+        console.print('[bold red]Error:[/bold red] AWS client not initialized. Check your credentials and config.')
+        return
+    print_budget_alerts(ctx)
+    from spottycat.utils.launch_template_builder import LaunchTemplateBuilder
+    try:
+        builder = LaunchTemplateBuilder(aws_client)
+        config = builder.build_template(instance_type, ami_id=ami_id, user_data=user_data_file)
+        if validate:
+            is_valid, errors = builder.validate_template(config)
+            if is_valid:
+                console.print('[bold green]Template validation passed.[/bold green]')
+            else:
+                console.print('[bold red]Template validation failed:[/bold red]')
+                for err in errors:
+                    console.print(f'- {err}')
+                return
+        if as_json:
+            console.print_json(json.dumps(config, default=str))
+        else:
+            table = Table(title="Launch Template Preview")
+            table.add_column("Field", style="cyan")
+            table.add_column("Value", style="magenta")
+            for k, v in config.items():
+                table.add_row(str(k), str(v))
+            console.print(table)
+        if debug:
+            console.print(f"[debug] Launch template config: {config}")
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
 
 
 @templates.command()
