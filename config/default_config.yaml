@@ -249,4 +249,12 @@ advanced:
   # Concurrent operations
   concurrency:
     max_parallel_requests: 5
-    max_parallel_instance_operations: 3 
+    max_parallel_instance_operations: 3
+
+# S3 Bucket Configuration
+s3_bucket:
+  # S3 bucket name where wordlists, rules, and cracked hashes are stored (e.g., 'spottycat-data-20250626')
+  name: ""
+  # (Optional) Name for the IAM instance profile to use. If not set, Spottycat will create and manage one automatically.
+  instance_profile: ""
+  # Default prefixes used: 'wordlists/', 'rules/', 'cracked/' 

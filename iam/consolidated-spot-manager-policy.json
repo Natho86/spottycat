@@ -319,6 +319,18 @@
           ]
         }
       }
+    },
+    {
+      "Sid": "S3Access",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::YOUR_WORDLIST_BUCKET",
+        "arn:aws:s3:::YOUR_WORDLIST_BUCKET/YOUR_WORDLIST_PREFIX*"
+      ]
     }
   ]
 } 

@@ -119,6 +119,43 @@ mkdir -p /mnt/wordlists
 aws s3 sync s3://FIXME-YOUR-BUCKET/wordlists/ /mnt/wordlists/
 """
     
+    def generate_cracked_sync_script(self, bucket: str, prefix: str) -> str:
+        """
+        Generate a script to sync non-empty cracked potfiles to S3 every 2 minutes and on shutdown.
+        Args:
+            bucket: S3 bucket name
+            prefix: S3 prefix/folder for cracked files
+        Returns:
+            Shell script snippet for cracked file sync
+        """
+        return f'''
+# Create cracked output directory
+mkdir -p /mnt/cracked
+
+# Function to sync non-empty potfiles
+sync_cracked() {{
+  for file in /mnt/cracked/*; do
+    [ -e "$file" ] || continue
+    if [ -s "$file" ]; then
+      aws s3 cp "$file" "s3://{bucket}/{prefix}"
+    fi
+  done
+}}
+
+# Periodic background sync every 2 minutes
+while true; do
+  sync_cracked
+  sleep 60
+done &
+
+# Shutdown/termination trap
+cleanup() {{
+  echo "Syncing cracked files to S3 before shutdown..."
+  sync_cracked
+}}
+trap cleanup EXIT
+'''
+    
     def combine_scripts(self, scripts: List[str]) -> str:
         """
         Combine multiple user data scripts into one.

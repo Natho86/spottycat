@@ -25,6 +25,7 @@ build/
 # Cursor AI
 .cursor/
 .mdc
+tasks/
 
 # AWS/SSH keys (precaution)
 *.pem

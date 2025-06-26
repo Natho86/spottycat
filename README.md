@@ -61,6 +61,34 @@ spottycat security-groups create
 - The root EBS volume is set to 100GB to ensure enough space.
 - Update the S3 bucket name in the code as needed.
 
+## S3 Integration and IAM Automation
+
+Spottycat supports automatic S3 integration for wordlists, rules, and cracked output. You only need to specify your S3 bucket name in the config file:
+
+```yaml
+s3_bucket:
+  name: "your-bucket-name"
+  # instance_profile: ""  # (optional) leave blank for Spottycat to manage automatically
+```
+
+**What Spottycat does automatically:**
+- Creates and manages the required IAM role and instance profile for S3 access (if not specified and running with admin permissions).
+- Attaches the instance profile to the EC2 launch template so instances have the correct S3 permissions.
+
+**What you must do manually:**
+- Create the S3 bucket (e.g., via AWS Console or CLI):
+  ```sh
+  aws s3api create-bucket --bucket your-bucket-name --region <region>
+  ```
+- Upload your wordlists and rules to the appropriate folders in the bucket:
+  ```sh
+  aws s3 cp mywordlist.txt s3://your-bucket-name/wordlists/
+  aws s3 cp myrules.rule s3://your-bucket-name/rules/
+  ```
+- (Optional) Download cracked hashes from the `cracked/` folder after running jobs.
+
+**Note:** Spottycat does not create the S3 bucket or upload files for you. You are responsible for managing the contents of the bucket.
+
 ## Troubleshooting
 
 - Ensure your AWS credentials and region are set (`aws configure` or env vars).

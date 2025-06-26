@@ -107,8 +107,21 @@ def create(ctx, instance_type, ami_id, user_data_file, validate, as_json):
 @click.argument('template_id')
 @click.pass_context
 def delete(ctx, template_id):
-    """Delete a launch template by ID (stub)."""
-    click.echo(f"[stub] Delete launch template {template_id}: Not yet implemented.")
+    """Delete a launch template by ID."""
+    console = Console()
+    aws_client = ctx.obj.get('aws_client')
+    debug = ctx.obj.get('debug', False)
+    if not aws_client:
+        console.print('[bold red]Error:[/bold red] AWS client not initialized. Check your credentials and config.')
+        return
+    print_budget_alerts(ctx)
+    try:
+        response = aws_client.ec2_client.delete_launch_template(LaunchTemplateId=template_id)
+        console.print(f'[bold green]Launch template {template_id} deleted successfully.[/bold green]')
+        if debug:
+            console.print(f"[debug] Delete response: {response}")
+    except Exception as e:
+        console.print(f'[bold red]Error deleting launch template:[/bold red] {e}')
 
 
 # Placeholder for launch template commands

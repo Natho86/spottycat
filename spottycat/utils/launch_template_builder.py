@@ -7,6 +7,7 @@ for GPU instances with Ubuntu 22.04 AMI selection logic.
 
 from typing import Dict, Any
 import base64
+import json
 
 
 class LaunchTemplateBuilder:
@@ -63,6 +64,90 @@ class LaunchTemplateBuilder:
                 # Sort by CreationDate descending
                 images.sort(key=lambda x: x['CreationDate'], reverse=True)
                 selected_ami = images[0]['ImageId']
+        # Determine S3 bucket and instance profile from config
+        s3_bucket = None
+        instance_profile = None
+        if config:
+            s3_bucket_cfg = config.config_data.get('s3_bucket', {})
+            s3_bucket = s3_bucket_cfg.get('name')
+            instance_profile = s3_bucket_cfg.get('instance_profile')
+        wordlists_prefix = "wordlists/"
+        rules_prefix = "rules/"
+        cracked_prefix = "cracked/"
+
+        # IAM automation: create/check instance profile and role if not set
+        if s3_bucket and not instance_profile:
+            iam = self.aws_client.session.client('iam')
+            profile_name = f"spottycat-s3-profile-{s3_bucket}"
+            role_name = f"spottycat-s3-role-{s3_bucket}"
+            assume_role_policy = {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Principal": {"Service": "ec2.amazonaws.com"},
+                        "Action": "sts:AssumeRole"
+                    }
+                ]
+            }
+            s3_policy = {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": ["s3:GetObject", "s3:ListBucket"],
+                        "Resource": [
+                            f"arn:aws:s3:::{s3_bucket}",
+                            f"arn:aws:s3:::{s3_bucket}/{wordlists_prefix}*",
+                            f"arn:aws:s3:::{s3_bucket}/{rules_prefix}*",
+                            f"arn:aws:s3:::{s3_bucket}/{cracked_prefix}*"
+                        ]
+                    },
+                    {
+                        "Effect": "Allow",
+                        "Action": ["s3:PutObject"],
+                        "Resource": [
+                            f"arn:aws:s3:::{s3_bucket}/{cracked_prefix}*"
+                        ]
+                    }
+                ]
+            }
+            # Create or get role
+            try:
+                iam.get_role(RoleName=role_name)
+            except iam.exceptions.NoSuchEntityException:
+                iam.create_role(
+                    RoleName=role_name,
+                    AssumeRolePolicyDocument=json.dumps(assume_role_policy)
+                )
+            # Attach S3 policy
+            policy_name = f"spottycat-s3-policy-{s3_bucket}"
+            try:
+                iam.get_policy(PolicyArn=f"arn:aws:iam::${{self.aws_client.sts_client.get_caller_identity()['Account']}}:policy/{policy_name}")
+            except iam.exceptions.NoSuchEntityException:
+                iam.create_policy(
+                    PolicyName=policy_name,
+                    PolicyDocument=json.dumps(s3_policy)
+                )
+            iam.attach_role_policy(
+                RoleName=role_name,
+                PolicyArn=f"arn:aws:iam::${{self.aws_client.sts_client.get_caller_identity()['Account']}}:policy/{policy_name}"
+            )
+            # Create or get instance profile
+            try:
+                iam.get_instance_profile(InstanceProfileName=profile_name)
+            except iam.exceptions.NoSuchEntityException:
+                iam.create_instance_profile(InstanceProfileName=profile_name)
+            # Add role to instance profile
+            try:
+                iam.add_role_to_instance_profile(
+                    InstanceProfileName=profile_name,
+                    RoleName=role_name
+                )
+            except iam.exceptions.LimitExceededException:
+                pass  # Already attached
+            instance_profile = profile_name
+
         # Handle user data (custom script or built-in)
         user_data_b64 = None
         if user_data:
@@ -77,15 +162,31 @@ class LaunchTemplateBuilder:
                 user_data_content = user_data
             user_data_b64 = base64.b64encode(user_data_content.encode('utf-8')).decode('utf-8')
         else:
-            # Use built-in scripts: NVIDIA, CUDA, hashcat, wordlist sync
             from spottycat.utils.user_data_scripts import UserDataScriptGenerator
             gen = UserDataScriptGenerator()
             scripts = [
                 gen.generate_nvidia_driver_script(),
                 gen.generate_cuda_toolkit_script(),
-                gen.generate_hashcat_script(),
-                gen.generate_wordlist_sync_script()
+                gen.generate_hashcat_script()
             ]
+            # Add wordlist and rules sync scripts if bucket is set
+            if s3_bucket:
+                scripts.append(f"""
+# Install AWS CLI if not present
+apt-get install -y awscli
+
+# Create mount points
+mkdir -p /mnt/wordlists
+mkdir -p /mnt/rules
+
+# Sync wordlists and rules from S3 bucket
+aws s3 sync s3://{s3_bucket}/{wordlists_prefix} /mnt/wordlists/
+aws s3 sync s3://{s3_bucket}/{rules_prefix} /mnt/rules/
+""")
+                # Add cracked potfile sync script
+                scripts.append(gen.generate_cracked_sync_script(s3_bucket, cracked_prefix))
+            else:
+                scripts.append(gen.generate_wordlist_sync_script())
             user_data_content = gen.combine_scripts(scripts)
             user_data_b64 = base64.b64encode(user_data_content.encode('utf-8')).decode('utf-8')
         # Determine root volume size from config or default
@@ -120,6 +221,8 @@ class LaunchTemplateBuilder:
         }
         if user_data_b64:
             template['UserData'] = user_data_b64
+        if instance_profile:
+            template['IamInstanceProfile'] = {'Name': instance_profile}
         return template 
 
     def validate_template(self, template: Dict[str, Any]) -> (bool, list):
