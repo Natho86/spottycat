@@ -9,6 +9,7 @@ import click
 from rich.console import Console
 from rich.table import Table
 import json
+from . import print_budget_alerts
 
 
 @click.group()
@@ -28,6 +29,7 @@ def list(ctx, as_json):
     if not aws_client:
         console.print('[bold red]Error:[/bold red] AWS client not initialized. Check your credentials and config.')
         return
+    print_budget_alerts(ctx)
     try:
         resp = aws_client.ec2_client.describe_launch_templates()
         templates = resp.get('LaunchTemplates', [])

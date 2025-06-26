@@ -9,6 +9,7 @@ import click
 from rich.console import Console
 from rich.table import Table
 import json
+from . import print_budget_alerts
 
 
 @click.group()
@@ -29,6 +30,7 @@ def list(ctx, instance_type, as_json):
     if not aws_client:
         console.print('[bold red]Error:[/bold red] AWS client not initialized. Check your credentials and config.')
         return
+    print_budget_alerts(ctx)
     try:
         quota = aws_client.get_gpu_instance_quota(instance_type)
         result = {"instance_type": instance_type, "quota": quota}
