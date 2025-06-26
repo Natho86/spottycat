@@ -79,7 +79,7 @@ class AWSClient:
         """
         try:
             return self.ec2_client.describe_instances(**kwargs)
-        except (NoCredentialsError, ClientError) as e:
+        except Exception as e:
             raise RuntimeError(f"Unable to describe EC2 instances: {e}")
 
     def describe_spot_instance_requests(self, **kwargs):
@@ -144,7 +144,7 @@ class AWSClient:
                 QuotaCode=quota_code
             )
             return resp['Quota']['Value']
-        except (NoCredentialsError, ClientError) as e:
+        except Exception as e:
             raise RuntimeError(f"Unable to fetch GPU quota for {instance_type}: {e}")
 
     def get_spot_price(self, instance_type, region=None):

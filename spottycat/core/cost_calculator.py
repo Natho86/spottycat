@@ -97,7 +97,7 @@ class CostCalculator:
                         price = self.estimate_spot_request_cost(instance_type, region=self.aws_client.region, availability_zone=az)
                     except Exception:
                         price = 0.0
-                    now = datetime.datetime.utcnow().replace(tzinfo=launch_time.tzinfo)
+                    now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=launch_time.tzinfo)
                     hours = (now - launch_time).total_seconds() / 3600.0
                     return round(hours * price, 4)
         raise RuntimeError(f"Instance {instance_id} not found or missing data.")
@@ -123,7 +123,7 @@ class CostCalculator:
                     price = self.estimate_spot_request_cost(instance_type, region=self.aws_client.region, availability_zone=az)
                 except Exception:
                     price = 0.0
-                now = datetime.datetime.utcnow().replace(tzinfo=launch_time.tzinfo)
+                now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=launch_time.tzinfo)
                 hours = (now - launch_time).total_seconds() / 3600.0
                 spends[instance_id] = round(hours * price, 4)
         return spends
@@ -213,8 +213,7 @@ class CostCalculator:
                     price = self.estimate_spot_request_cost(instance_type, region=region, availability_zone=az)
                 except Exception:
                     price = 0.0
-                import datetime
-                now = datetime.datetime.utcnow().replace(tzinfo=launch_time.tzinfo)
+                now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=launch_time.tzinfo)
                 hours = (now - launch_time).total_seconds() / 3600.0
                 spend = round(hours * price, 4)
                 spends[region] = spends.get(region, 0.0) + spend

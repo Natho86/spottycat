@@ -96,7 +96,7 @@ class TestCostCalculator:
         from spottycat.core.cost_calculator import CostCalculator
         mock_aws_client = Mock()
         # Mock describe_instances to return a running spot instance
-        launch_time = datetime.datetime.utcnow().replace(microsecond=0) - datetime.timedelta(hours=2)
+        launch_time = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0) - datetime.timedelta(hours=2)
         mock_aws_client.describe_instances.return_value = {
             'Reservations': [
                 {
