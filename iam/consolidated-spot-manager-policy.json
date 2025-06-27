@@ -328,8 +328,19 @@
         "s3:ListBucket"
       ],
       "Resource": [
-        "arn:aws:s3:::YOUR_WORDLIST_BUCKET",
-        "arn:aws:s3:::YOUR_WORDLIST_BUCKET/YOUR_WORDLIST_PREFIX*"
+        "arn:aws:s3:::YOUR_BUCKET_NAME",
+        "arn:aws:s3:::YOUR_BUCKET_NAME/wordlists/*",
+        "arn:aws:s3:::YOUR_BUCKET_NAME/rules/*"
+      ]
+    },
+    {
+      "Sid": "S3PutCracked",
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::YOUR_BUCKET_NAME/cracked/*"
       ]
     }
   ]

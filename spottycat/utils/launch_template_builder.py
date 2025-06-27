@@ -183,6 +183,9 @@ mkdir -p /mnt/rules
 aws s3 sync s3://{s3_bucket}/{wordlists_prefix} /mnt/wordlists/
 aws s3 sync s3://{s3_bucket}/{rules_prefix} /mnt/rules/
 """)
+                # Add decompression for wordlists and rules
+                scripts.append(gen.generate_7z_decompression_script("/mnt/wordlists", cleanup=True))
+                scripts.append(gen.generate_7z_decompression_script("/mnt/rules", cleanup=True))
                 # Add cracked potfile sync script
                 scripts.append(gen.generate_cracked_sync_script(s3_bucket, cracked_prefix))
             else:

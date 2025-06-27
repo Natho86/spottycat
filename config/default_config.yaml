@@ -252,8 +252,22 @@ advanced:
     max_parallel_instance_operations: 3
 
 # S3 Bucket Configuration
+#
+# Example usage:
+#
+# s3_bucket:
+#   name: "spottycat-data-20250626"
+#   # All wordlists and rules must be uploaded as .7z (7-Zip) archives.
+#   # Place your archives in the following S3 prefixes:
+#   #   s3://spottycat-data-20250626/wordlists/yourlist.7z
+#   #   s3://spottycat-data-20250626/rules/yourrules.7z
+#   # Cracked output will be uploaded to:
+#   #   s3://spottycat-data-20250626/cracked/
+#   instance_profile: "spottycat-s3-profile"
+#
 s3_bucket:
   # S3 bucket name where wordlists, rules, and cracked hashes are stored (e.g., 'spottycat-data-20250626')
+  # NOTE: All wordlists and rules must be uploaded as .7z (7-Zip) archives to reduce transfer time and cost. Spottycat will download and decompress these archives on the instance.
   name: ""
   # (Optional) Name for the IAM instance profile to use. If not set, Spottycat will create and manage one automatically.
   instance_profile: ""

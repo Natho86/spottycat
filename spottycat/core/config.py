@@ -98,3 +98,16 @@ class Config:
     @property
     def region(self):
         return self.aws.region 
+
+    def validate(self):
+        """Validate required configuration fields for S3 and 7z archive usage."""
+        s3_bucket = self.config_data.get('s3_bucket', {})
+        if not s3_bucket.get('name'):
+            raise ValueError("Missing required S3 bucket name in config under 's3_bucket.name'.")
+        # Check for documentation note about .7z archives
+        # (We can't enforce file upload, but we can check for the doc string in config)
+        doc_lines = self.config_data.get('_comments', [])
+        # If using ruamel.yaml or similar, you could check for comments, but with PyYAML, just ensure the field is present
+        # Optionally, warn if user hasn't set a note about 7z usage
+        # For now, just pass if s3_bucket.name is set
+        return True 

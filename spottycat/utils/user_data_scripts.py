@@ -137,7 +137,10 @@ sync_cracked() {{
   for file in /mnt/cracked/*; do
     [ -e "$file" ] || continue
     if [ -s "$file" ]; then
-      aws s3 cp "$file" "s3://{bucket}/{prefix}"
+      echo "Uploading $file to s3://{bucket}/{prefix}" | tee -a /var/log/cracked-upload.log
+      if ! aws s3 cp "$file" "s3://{bucket}/{prefix}" 2>>/var/log/cracked-upload.log; then
+        echo "Failed to upload $file to S3" | tee -a /var/log/cracked-upload.log
+      fi
     fi
   done
 }}
@@ -150,10 +153,34 @@ done &
 
 # Shutdown/termination trap
 cleanup() {{
-  echo "Syncing cracked files to S3 before shutdown..."
+  echo "Syncing cracked files to S3 before shutdown..." | tee -a /var/log/cracked-upload.log
   sync_cracked
 }}
 trap cleanup EXIT
+'''
+    
+    def generate_7z_decompression_script(self, target_dir: str, cleanup: bool = True) -> str:
+        """
+        Generate a script to install 7z and decompress all .7z files in the target directory.
+        Args:
+            target_dir: Directory containing .7z archives
+            cleanup: If True, delete .7z files after extraction
+        Returns:
+            Shell script snippet for decompression
+        """
+        cleanup_cmd = f"rm -f {target_dir}/*.7z" if cleanup else ""
+        return f'''
+# Install 7z if not present
+apt-get update
+apt-get install -y p7zip-full
+
+# Decompress all .7z files in {target_dir}
+for archive in {target_dir}/*.7z; do
+  [ -e "$archive" ] || continue
+  echo "Decompressing $archive ..."
+  7z x "$archive" -o{target_dir} || echo "Failed to decompress $archive" >&2
+  {cleanup_cmd}
+done
 '''
     
     def combine_scripts(self, scripts: List[str]) -> str:

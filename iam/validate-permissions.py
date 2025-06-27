@@ -85,6 +85,13 @@ class SpottyCatPermissionValidator:
                 'pricing:GetProducts',
                 'pricing:DescribeServices',
                 'cloudwatch:PutMetricData'
+            ],
+            # S3 access for wordlists, rules, and cracked output
+            # ARNs must match the user's config (bucket and prefixes)
+            's3_access': [
+                's3:GetObject',
+                's3:ListBucket',
+                's3:PutObject'
             ]
         }
         

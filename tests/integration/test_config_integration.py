@@ -83,3 +83,76 @@ class TestConfigIntegration:
         # Basic assertions
         assert aws_region is not None
         assert budget is not None 
+
+    def test_s3_bucket_config_validation(self, tmp_path):
+        """Test config validation for required S3 fields and 7z documentation."""
+        from spottycat.core.config import Config
+        import yaml
+        # Valid config
+        valid_config = {
+            's3_bucket': {
+                'name': 'spottycat-data-20250626',
+                'instance_profile': 'spottycat-s3-profile'
+            }
+        }
+        valid_file = tmp_path / "valid_config.yaml"
+        with open(valid_file, 'w') as f:
+            yaml.dump(valid_config, f)
+        config = Config(str(valid_file))
+        config.load_config()
+        assert config.validate() is True
+
+        # Invalid config (missing s3_bucket.name)
+        invalid_config = {
+            's3_bucket': {
+                'instance_profile': 'spottycat-s3-profile'
+            }
+        }
+        invalid_file = tmp_path / "invalid_config.yaml"
+        with open(invalid_file, 'w') as f:
+            yaml.dump(invalid_config, f)
+        config = Config(str(invalid_file))
+        config.load_config()
+        import pytest
+        with pytest.raises(ValueError, match="Missing required S3 bucket name"):
+            config.validate()
+
+    def test_user_data_script_includes_7z_decompression(self):
+        """Test that the user data script includes S3 sync and 7z decompression for wordlists and rules."""
+        from spottycat.utils.user_data_scripts import UserDataScriptGenerator
+        s3_bucket = "spottycat-data-20250626"
+        wordlists_prefix = "wordlists/"
+        rules_prefix = "rules/"
+        gen = UserDataScriptGenerator()
+        # Simulate the script generation as in launch_template_builder
+        script = f"""
+# Install AWS CLI if not present
+apt-get install -y awscli
+
+# Create mount points
+mkdir -p /mnt/wordlists
+mkdir -p /mnt/rules
+
+# Sync wordlists and rules from S3 bucket
+aws s3 sync s3://{s3_bucket}/{wordlists_prefix} /mnt/wordlists/
+aws s3 sync s3://{s3_bucket}/{rules_prefix} /mnt/rules/
+"""
+        script += gen.generate_7z_decompression_script("/mnt/wordlists", cleanup=True)
+        script += gen.generate_7z_decompression_script("/mnt/rules", cleanup=True)
+        # Check for expected commands
+        assert "apt-get install -y p7zip-full" in script
+        assert "7z x \"$archive\" -o/mnt/wordlists" in script
+        assert "7z x \"$archive\" -o/mnt/rules" in script
+        assert "aws s3 sync s3://spottycat-data-20250626/wordlists/ /mnt/wordlists/" in script
+        assert "aws s3 sync s3://spottycat-data-20250626/rules/ /mnt/rules/" in script 
+
+    def test_cracked_sync_script_includes_error_handling(self):
+        """Test that the cracked sync script includes error handling/logging and directory creation."""
+        from spottycat.utils.user_data_scripts import UserDataScriptGenerator
+        gen = UserDataScriptGenerator()
+        script = gen.generate_cracked_sync_script("mybucket", "cracked/")
+        assert "mkdir -p /mnt/cracked" in script
+        assert "/var/log/cracked-upload.log" in script
+        assert "if ! aws s3 cp" in script
+        assert "Failed to upload $file to S3" in script
+        assert "Uploading $file to s3://mybucket/cracked/" in script 

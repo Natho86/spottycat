@@ -54,6 +54,12 @@ aws accessanalyzer validate-policy \
 
 ### Step 2: Create Custom Managed Policies
 
+### Note: Replace YOUR_BUCKET_NAME with your actual S3 bucket name from your Spottycat config when creating the policy. Example ARNs:
+- arn:aws:s3:::YOUR_BUCKET_NAME
+- arn:aws:s3:::YOUR_BUCKET_NAME/wordlists/*
+- arn:aws:s3:::YOUR_BUCKET_NAME/rules/*
+- arn:aws:s3:::YOUR_BUCKET_NAME/cracked/*
+
 #### Option A: Create Consolidated Policy
 
 ```bash
