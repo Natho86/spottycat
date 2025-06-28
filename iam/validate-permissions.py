@@ -34,6 +34,7 @@ class SpottyCatPermissionValidator:
         self.sts_client = None
         self.current_user_arn = None
         self.account_id = None
+        self.simulate_arn = None
         
         # Required permissions for SpottyCat
         self.required_permissions = {
@@ -125,6 +126,11 @@ class SpottyCatPermissionValidator:
             
             print(f"✓ Authenticated as: {self.current_user_arn}")
             print(f"✓ AWS Account ID: {self.account_id}")
+            
+            if self.simulate_arn:
+                self.current_user_arn = self.simulate_arn
+                print(f"✓ Simulating permissions for: {self.current_user_arn}")
+            
             return True
             
         except ProfileNotFound:
@@ -156,7 +162,7 @@ class SpottyCatPermissionValidator:
                     return False
             
             # Test EC2 access
-            self.ec2_client.describe_regions(MaxResults=1)
+            self.ec2_client.describe_regions()
             print("✓ EC2 API access confirmed")
             
             # Test Service Quotas access
@@ -427,6 +433,10 @@ def main():
         help='AWS region to use for validation (default: us-east-1)'
     )
     parser.add_argument(
+        '--simulate-arn',
+        help='IAM ARN to simulate permissions for (default: current user/profile)'
+    )
+    parser.add_argument(
         '--version',
         action='version',
         version='SpottyCat Permission Validator 1.0'
@@ -439,6 +449,8 @@ def main():
             profile_name=args.profile,
             region=args.region
         )
+        if args.simulate_arn:
+            validator.simulate_arn = args.simulate_arn
         exit_code = validator.run_validation()
         sys.exit(exit_code)
         

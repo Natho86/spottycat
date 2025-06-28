@@ -34,6 +34,7 @@ class LaunchTemplateBuilder:
             Launch template configuration dictionary
         """
         import boto3
+        config = kwargs.get('config')  # Ensure config is always defined
         region = kwargs.get('region', self.aws_client.region)
         architecture = kwargs.get('architecture', 'x86_64')
         ami_id = kwargs.get('ami_id')
@@ -123,7 +124,7 @@ class LaunchTemplateBuilder:
             # Attach S3 policy
             policy_name = f"spottycat-s3-policy-{s3_bucket}"
             try:
-                iam.get_policy(PolicyArn=f"arn:aws:iam::${{self.aws_client.sts_client.get_caller_identity()['Account']}}:policy/{policy_name}")
+                iam.get_policy(PolicyArn=f"arn:aws:iam::{self.aws_client.sts_client.get_caller_identity()['Account']}:policy/{policy_name}")
             except iam.exceptions.NoSuchEntityException:
                 iam.create_policy(
                     PolicyName=policy_name,
@@ -131,7 +132,7 @@ class LaunchTemplateBuilder:
                 )
             iam.attach_role_policy(
                 RoleName=role_name,
-                PolicyArn=f"arn:aws:iam::${{self.aws_client.sts_client.get_caller_identity()['Account']}}:policy/{policy_name}"
+                PolicyArn=f"arn:aws:iam::{self.aws_client.sts_client.get_caller_identity()['Account']}:policy/{policy_name}"
             )
             # Create or get instance profile
             try:
@@ -193,7 +194,6 @@ aws s3 sync s3://{s3_bucket}/{rules_prefix} /mnt/rules/
             user_data_content = gen.combine_scripts(scripts)
             user_data_b64 = base64.b64encode(user_data_content.encode('utf-8')).decode('utf-8')
         # Determine root volume size from config or default
-        config = kwargs.get('config')
         root_volume_size = 100  # default
         root_volume_type = 'gp3'
         root_volume_encrypted = True
@@ -201,6 +201,9 @@ aws s3 sync s3://{s3_bucket}/{rules_prefix} /mnt/rules/
         if config:
             launch_template_cfg = config.config_data.get('launch_template', {})
             root_vol_cfg = launch_template_cfg.get('root_volume', {})
+            # Fallback to top-level root_volume if not set under launch_template
+            if not root_vol_cfg:
+                root_vol_cfg = config.config_data.get('root_volume', {})
             root_volume_size = root_vol_cfg.get('size', root_volume_size)
             root_volume_type = root_vol_cfg.get('type', root_volume_type)
             root_volume_encrypted = root_vol_cfg.get('encrypted', root_volume_encrypted)

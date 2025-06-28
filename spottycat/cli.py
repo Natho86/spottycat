@@ -204,7 +204,7 @@ def config_check(ctx):
     # Check configuration
     if config_obj:
         click.echo(f"{Fore.GREEN}✓{Style.RESET_ALL} Configuration loaded successfully")
-        click.echo(f"  Config file: {config_obj.config_path or 'default'}")
+        click.echo(f"  Config file: {config_obj.config_file or 'default'}")
         click.echo(f"  AWS Profile: {config_obj.aws.profile or 'default'}")
         click.echo(f"  AWS Region: {config_obj.aws.region or 'us-east-1'}")
     else:

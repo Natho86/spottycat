@@ -52,53 +52,7 @@
         "ec2:RequestSpotInstances",
         "ec2:CancelSpotInstanceRequests"
       ],
-      "Resource": "*",
-      "Condition": {
-        "StringEquals": {
-          "ec2:InstanceType": [
-            "p2.xlarge",
-            "p2.8xlarge",
-            "p2.16xlarge",
-            "p3.2xlarge",
-            "p3.8xlarge",
-            "p3.16xlarge",
-            "p3dn.24xlarge",
-            "p4d.24xlarge",
-            "g3.4xlarge",
-            "g3.8xlarge",
-            "g3.16xlarge",
-            "g4dn.xlarge",
-            "g4dn.2xlarge",
-            "g4dn.4xlarge",
-            "g4dn.8xlarge",
-            "g4dn.12xlarge",
-            "g4dn.16xlarge",
-            "g5.xlarge",
-            "g5.2xlarge",
-            "g5.4xlarge",
-            "g5.8xlarge",
-            "g5.12xlarge",
-            "g5.16xlarge",
-            "g5.24xlarge",
-            "g5.48xlarge"
-          ],
-          "aws:RequestedRegion": [
-            "us-east-1",
-            "us-east-2",
-            "us-west-1",
-            "us-west-2",
-            "eu-west-1",
-            "eu-west-2",
-            "eu-central-1",
-            "ap-southeast-1",
-            "ap-southeast-2",
-            "ap-northeast-1"
-          ]
-        },
-        "NumericLessThan": {
-          "ec2:SpotMaxPrice": "10.0"
-        }
-      }
+      "Resource": "*"
     },
     {
       "Sid": "LaunchTemplateManagement",
@@ -111,7 +65,7 @@
         "ec2:DescribeLaunchTemplateVersions"
       ],
       "Resource": [
-        "arn:aws:ec2:*:*:launch-template/*"
+        "*"
       ],
       "Condition": {
         "StringEquals": {
@@ -122,10 +76,7 @@
             "us-west-2",
             "eu-west-1",
             "eu-west-2",
-            "eu-central-1",
-            "ap-southeast-1",
-            "ap-southeast-2",
-            "ap-northeast-1"
+            "eu-central-1"
           ]
         }
       }
@@ -163,10 +114,7 @@
             "us-west-2",
             "eu-west-1",
             "eu-west-2",
-            "eu-central-1",
-            "ap-southeast-1",
-            "ap-southeast-2",
-            "ap-northeast-1"
+            "eu-central-1"
           ]
         }
       }
@@ -205,10 +153,7 @@
             "us-west-2",
             "eu-west-1",
             "eu-west-2",
-            "eu-central-1",
-            "ap-southeast-1",
-            "ap-southeast-2",
-            "ap-northeast-1"
+            "eu-central-1"
           ]
         }
       }
@@ -221,19 +166,7 @@
       ],
       "Resource": [
         "arn:aws:ec2:*:*:security-group/*"
-      ],
-      "Condition": {
-        "StringEquals": {
-          "ec2:AuthorizeSecurityGroupIngress/IpProtocol": "tcp"
-        },
-        "NumericEquals": {
-          "ec2:AuthorizeSecurityGroupIngress/FromPort": "22",
-          "ec2:AuthorizeSecurityGroupIngress/ToPort": "22"
-        },
-        "StringLike": {
-          "ec2:GroupName": "spottycat-*"
-        }
-      }
+      ]
     },
     {
       "Sid": "SecurityGroupDeleteRestricted",
@@ -328,9 +261,9 @@
         "s3:ListBucket"
       ],
       "Resource": [
-        "arn:aws:s3:::YOUR_BUCKET_NAME",
-        "arn:aws:s3:::YOUR_BUCKET_NAME/wordlists/*",
-        "arn:aws:s3:::YOUR_BUCKET_NAME/rules/*"
+        "arn:aws:s3:::spottycat-data-20250626",
+        "arn:aws:s3:::spottycat-data-20250626/wordlists/*",
+        "arn:aws:s3:::spottycat-data-20250626/rules/*"
       ]
     },
     {
@@ -340,7 +273,7 @@
         "s3:PutObject"
       ],
       "Resource": [
-        "arn:aws:s3:::YOUR_BUCKET_NAME/cracked/*"
+        "arn:aws:s3:::spottycat-data-20250626/cracked/*"
       ]
     }
   ]

@@ -20,7 +20,13 @@ pip install spottycat
 
 ## Configuration
 
-- Copy `config/default_config.yaml` to your working directory or `~/.spottycat/config.yaml` and edit as needed.
+- Copy `config/default_config.yaml` to one of the supported config locations and edit as needed.
+- **Config file search order (highest to lowest precedence):**
+  1. `~/.spottycat/config.yaml`
+  2. `~/.config/spottycat/config.yaml`
+  3. `./config/config.yaml`
+  4. `./spottycat.yaml`
+- You can override the config file location with the `--config` command line option (e.g. `spottycat --config ./myconfig.yaml ...`).
 - You can override config values with environment variables (see config.py for mappings).
 - AWS credentials must be configured (via `aws configure`, environment, or IAM role).
 

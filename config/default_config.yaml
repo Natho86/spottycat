@@ -92,7 +92,7 @@ launch_template:
   
   # Root volume configuration
   root_volume:
-    size: 100  # GB
+    size: 200  # GB
     type: "gp3"  # gp2, gp3, io1, io2
     encrypted: true
     delete_on_termination: true
@@ -271,4 +271,7 @@ s3_bucket:
   name: ""
   # (Optional) Name for the IAM instance profile to use. If not set, Spottycat will create and manage one automatically.
   instance_profile: ""
-  # Default prefixes used: 'wordlists/', 'rules/', 'cracked/' 
+  # Default prefixes used: 'wordlists/', 'rules/', 'cracked/'
+
+print("DEBUG: Loaded config from", config_path)
+print("DEBUG: config_data:", self.config_data) 
