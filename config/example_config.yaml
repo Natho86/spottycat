@@ -74,3 +74,12 @@ cli:
   output_format: "json"  # Prefer JSON output for scripting
   colored_output: false  # Disable colors for log parsing
   log_level: "DEBUG"     # Verbose logging for troubleshooting 
+
+# Launch Template Configuration
+launch_template:
+  # Name prefix for launch templates
+  name_prefix: spottycat
+  # SSH key pair name to use for instances (required for SSH access)
+  # WARNING: If omitted, you will NOT be able to SSH into instances launched from this template.
+  key_name: my-spottycat-key
+  # ... other launch template options ... 

@@ -81,8 +81,11 @@ spot:
 
 # Launch Template Configuration
 launch_template:
-  # Default launch template name prefix
-  name_prefix: "spottycat"
+  # Name prefix for launch templates
+  name_prefix: spottycat
+  # SSH key pair name to use for instances (required for SSH access)
+  # WARNING: If omitted, you will NOT be able to SSH into instances launched from this template.
+  key_name: my-spottycat-key
   
   # Instance monitoring (basic, detailed)
   monitoring: "basic"

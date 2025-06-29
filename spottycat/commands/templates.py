@@ -62,10 +62,11 @@ def list(ctx, as_json):
 @click.option('--instance-type', required=True, help='EC2 instance type (e.g., g4dn.xlarge)')
 @click.option('--ami-id', default=None, help='Custom AMI ID (overrides Ubuntu 22.04 selection)')
 @click.option('--user-data-file', default=None, help='Path to custom user data script (optional)')
+@click.option('--key-name', default=None, help='Name of the SSH key pair to use for the instance (required for SSH access)')
 @click.option('--validate', is_flag=True, help='Validate the launch template before output')
 @click.option('--json', 'as_json', is_flag=True, help='Output as JSON')
 @click.pass_context
-def create(ctx, instance_type, ami_id, user_data_file, validate, as_json):
+def create(ctx, instance_type, ami_id, user_data_file, key_name, validate, as_json):
     """Create a new launch template with Ubuntu 22.04 AMI selection and optional custom user data."""
     console = Console()
     aws_client = ctx.obj.get('aws_client')
@@ -85,13 +86,22 @@ def create(ctx, instance_type, ami_id, user_data_file, validate, as_json):
         profile = config_obj.profile or aws_client.profile
         builder = LaunchTemplateBuilder(aws_client)
         # Build template using config values
-        config = builder.build_template(
-            instance_type,
+        template_kwargs = dict(
+            instance_type=instance_type,
             ami_id=ami_id,
             user_data=user_data_file,
             config=config_obj,
             region=region
         )
+        if key_name:
+            template_kwargs['key_name'] = key_name
+        config = builder.build_template(**template_kwargs)
+        # Add KeyName to template if provided
+        if key_name:
+            config['KeyName'] = key_name
+        warning = None
+        if not key_name:
+            warning = '[bold yellow]Warning:[/bold yellow] No SSH key name specified. You will NOT be able to SSH into instances launched from this template.'
         if validate:
             is_valid, errors = builder.validate_template(config)
             if is_valid:
@@ -102,8 +112,13 @@ def create(ctx, instance_type, ami_id, user_data_file, validate, as_json):
                     console.print(f'- {err}')
                 return
         if as_json:
-            console.print_json(json.dumps(config, default=str))
+            out = dict(config)
+            if warning:
+                out['WARNING'] = 'No SSH key name specified. You will NOT be able to SSH into instances launched from this template.'
+            console.print_json(json.dumps(out, default=str))
         else:
+            if warning:
+                console.print(warning)
             table = Table(title="Launch Template Preview")
             table.add_column("Field", style="cyan")
             table.add_column("Value", style="magenta")
@@ -112,11 +127,10 @@ def create(ctx, instance_type, ami_id, user_data_file, validate, as_json):
             console.print(table)
         if debug:
             console.print(f"[debug] Launch template config: {config}")
-        # Confirm with user before submitting to AWS
-        if not as_json:
-            if not click.confirm("Submit this launch template to AWS?"):
-                console.print("[yellow]Aborted by user.[/yellow]")
-                return
+        # Always confirm with user before submitting to AWS
+        if not click.confirm("Submit this launch template to AWS?"):
+            console.print("[yellow]Aborted by user.[/yellow]")
+            return
         # Prepare create_launch_template call
         template_name = f"spottycat-{instance_type.replace('.', '-')}-template"
         # Use config for name prefix if set

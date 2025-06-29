@@ -289,3 +289,14 @@ For additional help:
 - Review AWS IAM documentation: https://docs.aws.amazon.com/iam/
 - Check AWS CLI reference: https://docs.aws.amazon.com/cli/
 - Consult SpottyCat documentation for application-specific configuration 
+
+## Example SpottyCat Workflow
+
+1. Complete IAM setup as described above
+2. Create your S3 bucket and upload wordlists/rules
+3. Create `/config/config.yaml` with your settings and bucket name
+4. Run `spottycat security-groups create`
+5. Run `spottycat keys create <key-name>`
+6. Run `spottycat templates create --instance-type <type> --key-name <key-name>`
+
+> **Note:** Always specify `--key-name` when creating a launch template. If you omit it, you will NOT be able to SSH into instances launched from this template. 

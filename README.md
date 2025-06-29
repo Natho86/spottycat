@@ -52,6 +52,25 @@ spottycat templates create --instance-type g4dn.xlarge --user-data-file my_userd
 spottycat security-groups create
 ```
 
+## Quickstart Workflow
+
+1. **Set up IAM permissions**: Follow the steps in `iam/setup-permissions.md` to create the required IAM user and policies.
+2. **Create S3 bucket**: Upload your wordlists and rules in 7z format to your S3 bucket.
+3. **Configure SpottyCat**: Create `/config/config.yaml` with your desired settings, including the S3 bucket name.
+4. **Create security group**:
+   ```sh
+   spottycat security-groups create
+   ```
+5. **Create SSH key pair**:
+   ```sh
+   spottycat keys create <key-name>
+   ```
+6. **Create launch template** (with SSH key):
+   ```sh
+   spottycat templates create --instance-type <type> --key-name <key-name>
+   ```
+   **Warning:** If you omit `--key-name`, you will NOT be able to SSH into instances launched from this template.
+
 ## Command Reference
 
 - `quotas`: Check GPU instance quotas
@@ -111,3 +130,7 @@ s3_bucket:
 ## License
 
 MIT License 
+
+## Launch Template Creation
+
+When creating a launch template, always specify the `--key-name` option with the name of your SSH key pair. This ensures that you can SSH into your instances. If you do not specify a key name, SpottyCat will warn you, and you will not be able to SSH into the launched instances. 

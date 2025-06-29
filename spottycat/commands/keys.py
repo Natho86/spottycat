@@ -58,10 +58,50 @@ def list(ctx, as_json):
 
 @keys.command()
 @click.argument('key_name')
+@click.option('--key-type', type=click.Choice(['rsa', 'ed25519']), default='rsa', help='Type of key pair (rsa or ed25519)')
+@click.option('--output', '-o', type=click.Path(), help='Path to save the downloaded private key')
+@click.option('--json', 'as_json', is_flag=True, help='Output as JSON')
 @click.pass_context
-def create(ctx, key_name):
-    """Create a new SSH key pair (stub)."""
-    click.echo(f"[stub] Create SSH key pair {key_name}: Not yet implemented.")
+def create(ctx, key_name, key_type, output, as_json):
+    """Create a new SSH key pair."""
+    console = Console()
+    aws_client = ctx.obj.get('aws_client')
+    debug = ctx.obj.get('debug', False)
+    if not aws_client:
+        console.print('[bold red]Error:[/bold red] AWS client not initialized. Check your credentials and config.')
+        return
+    print_budget_alerts(ctx)
+    try:
+        response = aws_client.ec2_client.create_key_pair(KeyName=key_name, KeyType=key_type)
+        private_key = response.get('KeyMaterial')
+        if not private_key:
+            console.print('[bold red]Error:[/bold red] No private key material returned.')
+            return
+        # Save private key to file
+        key_path = output or f"{key_name}.pem"
+        with open(key_path, 'w') as f:
+            f.write(private_key)
+        # Set permissions to 0o400
+        import os
+        os.chmod(key_path, 0o400)
+        if as_json:
+            out = dict(response)
+            out['PrivateKeyPath'] = key_path
+            console.print_json(json.dumps(out, default=str))
+        else:
+            console.print(f"[bold green]Key pair '{key_name}' created and private key saved to {key_path}[/bold green]")
+            table = Table(title="Created SSH Key Pair")
+            table.add_column("Field", style="cyan")
+            table.add_column("Value", style="magenta")
+            for k, v in response.items():
+                if k != 'KeyMaterial':
+                    table.add_row(str(k), str(v))
+            table.add_row('PrivateKeyPath', key_path)
+            console.print(table)
+        if debug:
+            console.print(f"[debug] Key pair create response: {response}")
+    except Exception as e:
+        console.print(f"[bold red]Error creating key pair:[/bold red] {e}")
 
 
 @keys.command()
