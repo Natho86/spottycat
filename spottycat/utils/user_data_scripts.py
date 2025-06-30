@@ -42,7 +42,7 @@ ubuntu-drivers autoinstall
     
     def generate_cuda_toolkit_script(self) -> str:
         """
-        Generate user data script for CUDA toolkit installation (Ubuntu 22.04, latest version).
+        Generate user data script for CUDA toolkit installation (Ubuntu 22.04, latest version, robust method).
         Returns:
             Shell script for CUDA toolkit installation
         """
@@ -54,19 +54,17 @@ exec > >(tee -a /var/log/cuda-toolkit-install.log|logger -t cuda-toolkit-install
 # Add NVIDIA package repositories
 apt-get update
 apt-get install -y wget gnupg lsb-release
-wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-ubuntu2204.pin
-mv cuda-ubuntu2204.pin /etc/apt/preferences.d/cuda-repository-pin-600
-wget https://developer.download.nvidia.com/compute/cuda/keys/cuda-archive-keyring.gpg
-mv cuda-archive-keyring.gpg /usr/share/keyrings/
+CUDA_KEY_URL="https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/3bf863cc.pub"
+CUDA_KEYRING="/usr/share/keyrings/cuda-archive-keyring.gpg"
+wget -O /tmp/cuda-key.pub "$CUDA_KEY_URL"
+install -m 644 /tmp/cuda-key.pub "$CUDA_KEYRING"
+rm /tmp/cuda-key.pub
 
-# Add the CUDA repository
-add-apt-repository "deb [signed-by=/usr/share/keyrings/cuda-archive-keyring.gpg] https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/ /"
-
+echo "deb [signed-by=$CUDA_KEYRING] https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/ /" > /etc/apt/sources.list.d/cuda.list
 apt-get update
-apt-get install -y cuda-toolkit-12-3  # Change version as needed, or use 'cuda-toolkit' for latest meta-package
+apt-get install -y cuda-toolkit-12-3
 
-# Optionally, add CUDA to PATH (for all users)
-echo 'export PATH=/usr/local/cuda/bin:$PATH' >> /etc/profile.d/cuda.sh
+echo 'export PATH=/usr/local/cuda/bin:$PATH' > /etc/profile.d/cuda.sh
 echo 'export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH' >> /etc/profile.d/cuda.sh
 """
     
@@ -106,9 +104,10 @@ hashcat --version
         """
         Generate user data script to sync wordlists from a fixed S3 bucket to /mnt/wordlists.
         Returns:
-            Shell script snippet for wordlist sync
+            Shell script snippet for wordlist sync (template only; not used if no bucket is set)
         """
         return """
+# (Template only) S3 sync for wordlists. This should not be used if no bucket is set.
 # Install AWS CLI if not present
 apt-get install -y awscli
 

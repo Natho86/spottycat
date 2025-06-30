@@ -189,8 +189,6 @@ aws s3 sync s3://{s3_bucket}/{rules_prefix} /mnt/rules/
                 scripts.append(gen.generate_7z_decompression_script("/mnt/rules", cleanup=True))
                 # Add cracked potfile sync script
                 scripts.append(gen.generate_cracked_sync_script(s3_bucket, cracked_prefix))
-            else:
-                scripts.append(gen.generate_wordlist_sync_script())
             user_data_content = gen.combine_scripts(scripts)
             user_data_b64 = base64.b64encode(user_data_content.encode('utf-8')).decode('utf-8')
         # Determine root volume size from config or default

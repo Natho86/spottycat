@@ -120,8 +120,22 @@ def create(ctx, name, description, vpc_id, as_json):
 @click.argument('group_id')
 @click.pass_context
 def delete(ctx, group_id):
-    """Delete a security group by ID (stub)."""
-    click.echo(f"[stub] Delete security group {group_id}: Not yet implemented.")
+    """
+    Delete a security group by ID.
+    """
+    console = Console()
+    aws_client = ctx.obj.get('aws_client')
+    debug = ctx.obj.get('debug', False)
+    if not aws_client:
+        console.print('[bold red]Error:[/bold red] AWS client not initialized. Check your credentials and config.')
+        return
+    try:
+        aws_client.ec2_client.delete_security_group(GroupId=group_id)
+        console.print(f"[green]Security group {group_id} deleted successfully.[/green]")
+    except Exception as e:
+        console.print(f"[bold red]Error deleting security group:[/bold red] {e}")
+    if debug:
+        console.print(f"[debug] Attempted to delete security group: {group_id}")
 
 
 # Placeholder for security group management commands

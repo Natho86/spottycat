@@ -108,18 +108,19 @@ def create(ctx, key_name, key_type, output, as_json):
 @click.argument('key_name')
 @click.pass_context
 def delete(ctx, key_name):
-    """Delete an SSH key pair by name (stub)."""
-    click.echo(f"[stub] Delete SSH key pair {key_name}: Not yet implemented.")
-
-
-@keys.command()
-@click.argument('key_name')
-@click.option('--output', '-o', type=click.Path(), help='Path to save the downloaded private key')
-@click.pass_context
-def download(ctx, key_name, output):
-    """Download the private key for a key pair (stub)."""
-    click.echo(f"[stub] Download SSH key pair {key_name} to {output or '[stdout]'}: Not yet implemented.")
-
-
-# Placeholder for SSH key management commands
-# Will be implemented in task 4.5 
+    """
+    Delete an SSH key pair by name.
+    """
+    console = Console()
+    aws_client = ctx.obj.get('aws_client')
+    debug = ctx.obj.get('debug', False)
+    if not aws_client:
+        console.print('[bold red]Error:[/bold red] AWS client not initialized. Check your credentials and config.')
+        return
+    try:
+        aws_client.ec2_client.delete_key_pair(KeyName=key_name)
+        console.print(f"[green]SSH key pair '{key_name}' deleted successfully.[/green]")
+    except Exception as e:
+        console.print(f"[bold red]Error deleting SSH key pair:[/bold red] {e}")
+    if debug:
+        console.print(f"[debug] Attempted to delete SSH key pair: {key_name}")

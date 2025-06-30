@@ -232,6 +232,173 @@ def config_check(ctx):
             click.echo(f"{Fore.YELLOW}⚠{Style.RESET_ALL} EC2 permissions check failed: {e}")
 
 
+@cli.command()
+@click.option('--key-name', default='spottycat-key', help='Name for the SSH key pair')
+@click.option('--key-type', type=click.Choice(['rsa', 'ed25519']), default='rsa', help='Type of SSH key')
+@click.option('--output', '-o', type=click.Path(), help='Path to save the downloaded private key')
+@click.option('--security-group', default='spottycat-sg', help='Name for the security group')
+@click.pass_context
+def up(ctx, key_name, key_type, output, security_group):
+    """
+    Automated setup: create security group, SSH key, and launch templates for all available GPU instance types.
+    Now always creates/uses the security group in the default VPC.
+    """
+    from rich.console import Console
+    import os
+    console = Console()
+    aws_client = ctx.obj.get('aws_client')
+    config_obj = ctx.obj.get('config')
+    debug = ctx.obj.get('debug', False)
+    if not aws_client:
+        console.print('[bold red]Error:[/bold red] AWS client not initialized. Check your credentials and config.')
+        return
+
+    # 1. Find the default VPC
+    try:
+        vpcs = aws_client.ec2_client.describe_vpcs(Filters=[{'Name': 'isDefault', 'Values': ['true']}])['Vpcs']
+        if not vpcs:
+            console.print('[bold red]No default VPC found in this region.[/bold red]')
+            return
+        default_vpc_id = vpcs[0]['VpcId']
+    except Exception as e:
+        console.print(f"[bold red]Error finding default VPC:[/bold red] {e}")
+        return
+
+    # 2. Ensure security group exists in the default VPC
+    sg_id = None
+    try:
+        sgs = aws_client.ec2_client.describe_security_groups(
+            Filters=[{'Name': 'group-name', 'Values': [security_group]}, {'Name': 'vpc-id', 'Values': [default_vpc_id]}]
+        )['SecurityGroups']
+        if sgs:
+            sg_id = sgs[0]['GroupId']
+            console.print(f"[green]Security group '{security_group}' already exists in default VPC (ID: {sg_id})[/green]")
+        else:
+            resp = aws_client.ec2_client.create_security_group(
+                GroupName=security_group,
+                Description='SpottyCat managed security group',
+                VpcId=default_vpc_id,
+                TagSpecifications=[{
+                    'ResourceType': 'security-group',
+                    'Tags': [{'Key': 'CreatedBy', 'Value': 'spottycat'}]
+                }]
+            )
+            sg_id = resp['GroupId']
+            # Allow SSH
+            aws_client.ec2_client.authorize_security_group_ingress(
+                GroupId=sg_id,
+                IpPermissions=[{
+                    'IpProtocol': 'tcp',
+                    'FromPort': 22,
+                    'ToPort': 22,
+                    'IpRanges': [{'CidrIp': '0.0.0.0/0'}]
+                }]
+            )
+            console.print(f"[green]Created security group '{security_group}' in default VPC (ID: {sg_id})[/green]")
+    except Exception as e:
+        console.print(f"[bold red]Error ensuring security group:[/bold red] {e}")
+        return
+
+    # 2. Ensure SSH key pair exists and download
+    key_path = output or os.path.expanduser(f"~/.spottycat/{key_name}.pem")
+    os.makedirs(os.path.dirname(key_path), exist_ok=True)
+    key_exists = False
+    try:
+        keys = aws_client.ec2_client.describe_key_pairs(KeyNames=[key_name])['KeyPairs']
+        if keys:
+            key_exists = True
+            console.print(f"[green]SSH key pair '{key_name}' already exists in AWS[/green]")
+            if not os.path.exists(key_path):
+                console.print(f"[yellow]Private key not found locally at {key_path}. Please download it from AWS if needed.[/yellow]")
+        else:
+            key_exists = False
+    except Exception:
+        key_exists = False
+    if not key_exists:
+        try:
+            resp = aws_client.ec2_client.create_key_pair(KeyName=key_name, KeyType=key_type)
+            private_key = resp.get('KeyMaterial')
+            with open(key_path, 'w') as f:
+                f.write(private_key)
+            os.chmod(key_path, 0o400)
+            console.print(f"[green]Created SSH key pair '{key_name}' and saved private key to {key_path}[/green]")
+        except Exception as e:
+            console.print(f"[bold red]Error creating SSH key pair:[/bold red] {e}")
+            return
+
+    # 3. Query available GPU instance types (using quotas logic or static list)
+    # For demo, use a static list; in production, query quotas or config
+    gpu_types = [
+        'g4dn.xlarge', 'g4dn.2xlarge', 'p3.2xlarge', 'g5.xlarge', 'g3.4xlarge'
+    ]
+    # TODO: Optionally, dynamically query quotas for available types
+
+    # 4. For each type, ensure launch template exists
+    from spottycat.utils.launch_template_builder import LaunchTemplateBuilder
+    builder = LaunchTemplateBuilder(aws_client)
+    created_templates = []
+    for instance_type in gpu_types:
+        template_name = f"spottycat-{instance_type.replace('.', '-')}-template"
+        try:
+            existing = aws_client.ec2_client.describe_launch_templates(
+                Filters=[{'Name': 'launch-template-name', 'Values': [template_name]}]
+            )['LaunchTemplates']
+            if existing:
+                console.print(f"[green]Launch template '{template_name}' already exists[/green]")
+                continue
+            # Build template config
+            config = builder.build_template(
+                instance_type=instance_type,
+                key_name=key_name,
+                config=config_obj,
+                region=aws_client.region,
+                ami_id=None,
+                user_data=None
+            )
+            req = {
+                'LaunchTemplateName': template_name,
+                'VersionDescription': 'Created by spottycat up',
+                'LaunchTemplateData': config
+            }
+            resp = aws_client.ec2_client.create_launch_template(**req)
+            created_templates.append(template_name)
+            console.print(f"[green]Created launch template '{template_name}' for {instance_type}[/green]")
+        except Exception as e:
+            console.print(f"[yellow]Skipped or failed to create template '{template_name}': {e}[/yellow]")
+
+    # 5. Print summary and next steps
+    console.print(f"\n[bold green]Setup complete![/bold green]")
+    console.print(f"Security group: [cyan]{security_group}[/cyan] (ID: {sg_id})")
+    console.print(f"SSH key: [cyan]{key_name}[/cyan] (private key at {key_path})")
+    console.print(f"Launch templates created for: [magenta]{', '.join(gpu_types)}[/magenta]")
+    console.print("You can now submit a spot instance request, e.g.:")
+    console.print(f"[bold]spottycat requests submit --instance-type g4dn.xlarge[/bold]")
+
+    # 6. Optionally, offer to add to ~/.ssh/config
+    ssh_config_path = os.path.expanduser('~/.ssh/config')
+    if click.confirm(f"Add entry to {ssh_config_path} for this key?", default=False):
+        host_block = f"\nHost spottycat-gpu\n    HostName <instance-public-ip>\n    User ubuntu\n    IdentityFile {key_path}\n    IdentitiesOnly yes\n    StrictHostKeyChecking no\n"
+        with open(ssh_config_path, 'a') as f:
+            f.write(host_block)
+        console.print(f"[green]Added SSH config entry. Replace <instance-public-ip> with your instance's public IP.[/green]")
+
+    # S3 bucket prompt logic
+    s3_bucket = config_obj.config_data.get('s3_bucket', {}).get('name', '') if config_obj else ''
+    if not s3_bucket:
+        s3_bucket = click.prompt(
+            "Enter S3 bucket name for wordlists/rules (leave blank to skip)",
+            default="", show_default=False
+        )
+        if config_obj:
+            if 's3_bucket' not in config_obj.config_data:
+                config_obj.config_data['s3_bucket'] = {}
+            config_obj.config_data['s3_bucket']['name'] = s3_bucket
+    if s3_bucket:
+        console.print(f"[cyan]S3 bucket set to:[/cyan] {s3_bucket}")
+    else:
+        console.print("[yellow]No S3 bucket will be used. Instances will not sync wordlists/rules from S3.[/yellow]")
+
+
 def main():
     """Entry point for the CLI application."""
     try:

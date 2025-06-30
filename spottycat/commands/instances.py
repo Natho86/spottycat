@@ -22,7 +22,9 @@ def instances():
 @click.option('--json', 'as_json', is_flag=True, help='Output as JSON')
 @click.pass_context
 def list(ctx, as_json):
-    """List running EC2 instances."""
+    """
+    List running EC2 instances, including their public and private IP addresses.
+    """
     console = Console()
     aws_client = ctx.obj.get('aws_client')
     debug = ctx.obj.get('debug', False)
@@ -45,14 +47,20 @@ def list(ctx, as_json):
             table.add_column("Type", style="magenta")
             table.add_column("State", style="green")
             table.add_column("Launch Time", style="yellow")
+            table.add_column("Public IP", style="blue")
+            table.add_column("Private IP", style="white")
             found = False
             for inst in running_instances:
                 found = True
+                public_ip = inst.get('PublicIpAddress', '-')
+                private_ip = inst.get('PrivateIpAddress', '-')
                 table.add_row(
                     inst.get('InstanceId', ''),
                     inst.get('InstanceType', ''),
                     inst.get('State', {}).get('Name', ''),
                     str(inst.get('LaunchTime', '')),
+                    public_ip or '-',
+                    private_ip or '-'
                 )
             if found:
                 console.print(table)
