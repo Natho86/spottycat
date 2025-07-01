@@ -116,7 +116,7 @@ security:
   # Key pair configuration
   key_pair:
     # Key pair name (will be created if doesn't exist)
-    name: "spottycat-keypair"
+    name: "spottycat-keyp"
     # Local path to store private key
     private_key_path: "~/.ssh/spottycat-key.pem"
   

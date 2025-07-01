@@ -158,12 +158,15 @@ def cli(ctx, debug, profile, region, config, no_color):
     
     # Load configuration
     try:
-        config_obj = Config(config_path=config)
+        config_obj = Config(config_file=config)
+        config_obj.load_config()  # Ensure config is loaded!
         ctx.obj['config'] = config_obj
     except Exception as e:
         if debug:
             click.echo(f"{Fore.YELLOW}Warning: Could not load configuration: {e}{Style.RESET_ALL}", err=True)
-        ctx.obj['config'] = Config()  # Use default config
+        config_obj = Config()
+        config_obj.load_config()
+        ctx.obj['config'] = config_obj
     
     # Override config with CLI options
     if profile:
@@ -252,6 +255,26 @@ def up(ctx, key_name, key_type, output, security_group):
     if not aws_client:
         console.print('[bold red]Error:[/bold red] AWS client not initialized. Check your credentials and config.')
         return
+
+    # Ensure config is loaded (in case it was not)
+    if hasattr(config_obj, 'load_config'):
+        config_obj.load_config()
+
+    # S3 bucket prompt logic (move to start)
+    s3_bucket = config_obj.config_data.get('s3_bucket', {}).get('name', '') if config_obj else ''
+    if not s3_bucket:
+        s3_bucket = click.prompt(
+            "Enter S3 bucket name for wordlists/rules (leave blank to skip)",
+            default="", show_default=False
+        )
+        if config_obj:
+            if 's3_bucket' not in config_obj.config_data:
+                config_obj.config_data['s3_bucket'] = {}
+            config_obj.config_data['s3_bucket']['name'] = s3_bucket
+    if s3_bucket:
+        console.print(f"[cyan]S3 bucket set to:[/cyan] {s3_bucket}")
+    else:
+        console.print("[yellow]No S3 bucket will be used. Instances will not sync wordlists/rules from S3.[/yellow]")
 
     # 1. Find the default VPC
     try:
@@ -382,21 +405,117 @@ def up(ctx, key_name, key_type, output, security_group):
             f.write(host_block)
         console.print(f"[green]Added SSH config entry. Replace <instance-public-ip> with your instance's public IP.[/green]")
 
-    # S3 bucket prompt logic
-    s3_bucket = config_obj.config_data.get('s3_bucket', {}).get('name', '') if config_obj else ''
-    if not s3_bucket:
-        s3_bucket = click.prompt(
-            "Enter S3 bucket name for wordlists/rules (leave blank to skip)",
-            default="", show_default=False
-        )
-        if config_obj:
-            if 's3_bucket' not in config_obj.config_data:
-                config_obj.config_data['s3_bucket'] = {}
-            config_obj.config_data['s3_bucket']['name'] = s3_bucket
-    if s3_bucket:
-        console.print(f"[cyan]S3 bucket set to:[/cyan] {s3_bucket}")
+
+@cli.command()
+@click.pass_context
+def cleanup(ctx):
+    """
+    Remove all spottycat-managed AWS resources and local SSH config/key.
+    """
+    from rich.console import Console
+    import os
+    import re
+    console = Console()
+    aws_client = ctx.obj.get('aws_client')
+    config_obj = ctx.obj.get('config')
+    debug = ctx.obj.get('debug', False)
+    if not aws_client:
+        console.print('[bold red]Error:[/bold red] AWS client not initialized. Check your credentials and config.')
+        return
+
+    # 1. Terminate all running spottycat EC2 instances
+    console.print('[cyan]Terminating all running spottycat EC2 instances...[/cyan]')
+    reservations = aws_client.describe_instances(Filters=[{'Name': 'instance-state-name', 'Values': ['pending', 'running', 'stopping', 'stopped']}]).get('Reservations', [])
+    spottycat_instance_ids = []
+    for reservation in reservations:
+        for inst in reservation.get('Instances', []):
+            tags = {t['Key']: t['Value'] for t in inst.get('Tags', [])} if inst.get('Tags') else {}
+            if any('spottycat' in (tags.get(k, '')).lower() for k in tags) or 'spottycat' in inst.get('InstanceType', '').lower():
+                spottycat_instance_ids.append(inst['InstanceId'])
+    if spottycat_instance_ids:
+        aws_client.ec2_client.terminate_instances(InstanceIds=spottycat_instance_ids)
+        console.print(f"[green]Terminated instances: {', '.join(spottycat_instance_ids)}[/green]")
     else:
-        console.print("[yellow]No S3 bucket will be used. Instances will not sync wordlists/rules from S3.[/yellow]")
+        console.print('[yellow]No spottycat EC2 instances found.[/yellow]')
+
+    # 2. Cancel all spottycat spot requests
+    console.print('[cyan]Canceling all spottycat spot requests...[/cyan]')
+    spot_requests = aws_client.ec2_client.describe_spot_instance_requests().get('SpotInstanceRequests', [])
+    spottycat_request_ids = [r['SpotInstanceRequestId'] for r in spot_requests if 'spottycat' in (r.get('LaunchGroup', '') + r.get('SpotInstanceRequestId', '')).lower()]
+    if spottycat_request_ids:
+        aws_client.ec2_client.cancel_spot_instance_requests(SpotInstanceRequestIds=spottycat_request_ids)
+        console.print(f"[green]Canceled spot requests: {', '.join(spottycat_request_ids)}[/green]")
+    else:
+        console.print('[yellow]No spottycat spot requests found.[/yellow]')
+
+    # 3. Delete all spottycat launch templates
+    console.print('[cyan]Deleting all spottycat launch templates...[/cyan]')
+    templates = aws_client.ec2_client.describe_launch_templates().get('LaunchTemplates', [])
+    deleted_templates = []
+    for tmpl in templates:
+        if 'spottycat' in tmpl.get('LaunchTemplateName', '').lower():
+            aws_client.ec2_client.delete_launch_template(LaunchTemplateId=tmpl['LaunchTemplateId'])
+            deleted_templates.append(tmpl['LaunchTemplateName'])
+    if deleted_templates:
+        console.print(f"[green]Deleted launch templates: {', '.join(deleted_templates)}[/green]")
+    else:
+        console.print('[yellow]No spottycat launch templates found.[/yellow]')
+
+    # 4. Delete the spottycat security group in the default VPC
+    console.print('[cyan]Deleting spottycat security group...[/cyan]')
+    try:
+        vpcs = aws_client.ec2_client.describe_vpcs(Filters=[{'Name': 'isDefault', 'Values': ['true']}])['Vpcs']
+        if vpcs:
+            default_vpc_id = vpcs[0]['VpcId']
+            sgs = aws_client.ec2_client.describe_security_groups(Filters=[{'Name': 'group-name', 'Values': ['spottycat-sg']}, {'Name': 'vpc-id', 'Values': [default_vpc_id]}])['SecurityGroups']
+            for sg in sgs:
+                try:
+                    aws_client.ec2_client.delete_security_group(GroupId=sg['GroupId'])
+                    console.print(f"[green]Deleted security group: {sg['GroupId']}[/green]")
+                except Exception as e:
+                    console.print(f"[yellow]Could not delete security group {sg['GroupId']}: {e}")
+        else:
+            console.print('[yellow]No default VPC found.[/yellow]')
+    except Exception as e:
+        console.print(f"[yellow]Error deleting security group: {e}")
+
+    # 5. Delete the spottycat-key SSH key pair from AWS and local disk
+    console.print('[cyan]Deleting spottycat-key SSH key pair from AWS and local disk...[/cyan]')
+    try:
+        aws_client.ec2_client.delete_key_pair(KeyName='spottycat-key')
+        console.print('[green]Deleted SSH key pair spottycat-key from AWS.[/green]')
+    except Exception as e:
+        console.print(f"[yellow]Could not delete SSH key pair from AWS: {e}")
+    key_path = os.path.expanduser('~/.spottycat/spottycat-key.pem')
+    if os.path.exists(key_path):
+        os.remove(key_path)
+        console.print(f"[green]Deleted local SSH key: {key_path}[/green]")
+    else:
+        console.print(f"[yellow]No local SSH key found at {key_path}.[/yellow]")
+
+    # 6. Remove the spottycat SSH config entry from ~/.ssh/config
+    console.print('[cyan]Removing spottycat SSH config entry from ~/.ssh/config...[/cyan]')
+    ssh_config_path = os.path.expanduser('~/.ssh/config')
+    if os.path.exists(ssh_config_path):
+        with open(ssh_config_path, 'r') as f:
+            lines = f.readlines()
+        new_lines = []
+        in_block = False
+        for line in lines:
+            if re.match(r'^Host +spottycat-gpu', line):
+                in_block = True
+                continue
+            if in_block and line.startswith('Host '):
+                in_block = False
+            if not in_block:
+                new_lines.append(line)
+        with open(ssh_config_path, 'w') as f:
+            f.writelines(new_lines)
+        console.print('[green]Removed spottycat SSH config entry.[/green]')
+    else:
+        console.print('[yellow]No SSH config file found at ~/.ssh/config.[/yellow]')
+
+    console.print('[bold green]Cleanup complete![/bold green]')
 
 
 def main():

@@ -33,6 +33,7 @@ htmlcov/
 .cursor/
 *.mdc
 tasks/
+Debug/
 
 # AWS/SSH keys (precaution)
 *.pem

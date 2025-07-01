@@ -65,6 +65,9 @@ class LaunchTemplateBuilder:
                 # Sort by CreationDate descending
                 images.sort(key=lambda x: x['CreationDate'], reverse=True)
                 selected_ami = images[0]['ImageId']
+        # Dynamically determine the root device name from the AMI
+        ami_info = ec2_client.describe_images(ImageIds=[selected_ami])['Images'][0]
+        root_device_name = ami_info['RootDeviceName']
         # Determine S3 bucket and instance profile from config
         s3_bucket = None
         instance_profile = None
@@ -212,7 +215,7 @@ aws s3 sync s3://{s3_bucket}/{rules_prefix} /mnt/rules/
             'InstanceType': instance_type,
             'BlockDeviceMappings': [
                 {
-                    'DeviceName': '/dev/xvda',
+                    'DeviceName': root_device_name,
                     'Ebs': {
                         'VolumeSize': root_volume_size,
                         'VolumeType': root_volume_type,

@@ -223,6 +223,8 @@ def submit(ctx, instance_type, max_price, key_name, max_hours, as_json):
             template_id = resp['LaunchTemplate']['LaunchTemplateId']
             version = str(resp['LaunchTemplate']['LatestVersionNumber'])
             console.print(f"[green]Created launch template '{template_name}' for {instance_type}[/green]")
+        # Print template info for user confirmation
+        console.print(f"[bold blue]Using launch template:[/bold blue] Name: {template_name}, ID: {template_id}, Version: {version}")
         # 6. Extract fields from launch template for LaunchSpecification
         lt_version = aws_client.ec2_client.describe_launch_template_versions(
             LaunchTemplateId=template_id,
